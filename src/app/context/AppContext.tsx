@@ -32,7 +32,8 @@ export interface Product {
   rating: number;
   reviewsCount: number;
   imageUrl: string;
-  isVerified: boolean; // "Skinly Verified" badge system
+  images?: string[];        // Array of all uploaded image URLs
+  isVerified: boolean;      // "Skinly Verified" badge system
   isFeatured: boolean;
   supplierId?: string;
 }
@@ -285,6 +286,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         imageUrl: p.image_url,
         isVerified: false,
         isFeatured: p.featured,
+        images: p.images || [],
         supplierId: p.supplier_id || undefined
       })));
     }
@@ -380,6 +382,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           imageUrl: item.products.image_url,
           isVerified: false,
           isFeatured: item.products.featured,
+          images: item.products.images || [],
           supplierId: item.products.supplier_id || undefined
         },
         quantity: item.quantity
@@ -690,6 +693,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         price: productData.price,
         stock: productData.stock,
         image_url: productData.imageUrl,
+        images: productData.images && productData.images.length > 0 ? productData.images : (productData.imageUrl ? [productData.imageUrl] : []),
         featured: productData.isFeatured,
         supplier_id: productData.supplierId || currentUser?.id
       });
@@ -715,6 +719,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         price: updatedProd.price,
         stock: updatedProd.stock,
         image_url: updatedProd.imageUrl,
+        images: updatedProd.images && updatedProd.images.length > 0 ? updatedProd.images : (updatedProd.imageUrl ? [updatedProd.imageUrl] : []),
         featured: updatedProd.isFeatured,
         supplier_id: updatedProd.supplierId
       }).eq('id', updatedProd.id);

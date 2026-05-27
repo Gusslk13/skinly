@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp, Product, Coupon, Order, User } from '../../context/AppContext';
+import { supabase } from '../../../supabase';
 import { Button, Input, Select, TextArea } from '../../components/UI';
-import { ProductImageUploader } from '../../components/ProductImageUploader';
 import {
   ShieldCheck, ShieldAlert, BarChart3, Package, Truck,
   Award, Ticket, Trash2, CheckCircle2,
   Layers, UserCheck, Plus, Settings, DollarSign,
-  FileText, Terminal, Copy, AlertTriangle
+  FileText, Terminal, Copy, AlertTriangle, ImagePlus, X
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -653,13 +653,9 @@ const DBSetupBanner: React.FC = () => {
 // ============================================================================
 // COMPONENTE AUXILIAR - FORMULARIO PARA AGREGAR PRODUCTOS
 // ============================================================================
-type FormErrors = Partial<Record<'name' | 'price' | 'stock' | 'ingredients', string>>;
+type FormErrors = Partial<Record<'name' | 'price' | 'stock' | 'ingredients' | 'image', string>>;
 
-const FALLBACK_IMAGES = [
-  'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=600',
-  'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?auto=format&fit=crop&q=80&w=600',
-  'https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&q=80&w=600'
-];
+const BUCKET = 'product-images';
 
 const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) => {
   const [name, setName] = useState('');
@@ -668,10 +664,12 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
   const [stock, setStock] = useState('30');
   const [category, setCategory] = useState('Serums');
   const [ingredients, setIngredients] = useState('');
-  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [uploadError, setUploadError] = useState<string>('');
   const [errors, setErrors] = useState<FormErrors>({});
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
-  const [hasUploadedImages, setHasUploadedImages] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'submitting' | 'success'>('idle');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validate = (): boolean => {
     const errs: FormErrors = {};
@@ -683,25 +681,67 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
     return Object.keys(errs).length === 0;
   };
 
-  const handleImagesChange = (urls: string[]) => {
-    setUploadedUrls(urls);
-    if (urls.length > 0) setHasUploadedImages(true);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Solo se permiten imágenes (PNG, JPG, WEBP)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('El archivo supera el límite de 5 MB');
+      return;
+    }
+    setUploadError('');
+    setImageFile(file);
+    // Revoke previous blob URL to avoid memory leaks
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(URL.createObjectURL(file));
+    // Reset input so the same file can be re-selected if needed
+    e.target.value = '';
+  };
+
+  const clearImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview('');
+    setUploadError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
-    setStatus('submitting');
+    setUploadError('');
+    let imageUrl = '';
+    let imageUrls: string[] = [];
 
+    // ── Step 1: Upload image if selected ───────────────────────
+    if (imageFile) {
+      setStatus('uploading');
+      const ext = imageFile.name.split('.').pop() || 'jpg';
+      const path = `products/${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const { data, error: uploadErr } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, imageFile, { cacheControl: '3600', upsert: false, contentType: imageFile.type });
+
+      if (uploadErr) {
+        setUploadError(`Error al subir imagen: ${uploadErr.message}`);
+        setStatus('idle');
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
+      imageUrl = publicUrl;
+      imageUrls = [publicUrl];
+    }
+
+    // ── Step 2: Save product ────────────────────────────────────
+    setStatus('submitting');
     const cleanIngredients = ingredients
       .split(',')
       .map(i => i.trim())
       .filter(i => i.length > 0);
-
-    const primaryImage =
-      uploadedUrls[0] ||
-      FALLBACK_IMAGES[Math.floor(Math.random() * FALLBACK_IMAGES.length)];
 
     await onAdd({
       name: name.trim(),
@@ -710,31 +750,33 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
       category,
       price: Number(price),
       stock: Number(stock),
-      imageUrl: primaryImage,
-      isVerified: true,
-      isFeatured: true
+      imageUrl,          // empty string is fine — column allows null
+      images: imageUrls, // empty array is fine
+      isVerified: false,
+      isFeatured: false
     });
 
-    // Reset form
+    // ── Step 3: Reset form ──────────────────────────────────────
     setName('');
     setDesc('');
     setPrice('');
     setIngredients('');
     setStock('30');
     setCategory('Serums');
-    setUploadedUrls([]);
-    setHasUploadedImages(false);
+    clearImage();
     setErrors({});
     setStatus('success');
     setTimeout(() => setStatus('idle'), 3500);
   };
+
+  const isBusy = status === 'uploading' || status === 'submitting';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
 
       {/* Success banner */}
       {status === 'success' && (
-        <div className="flex items-center gap-2 bg-brand-green-dark/10 border border-brand-green-dark/20 text-brand-green-dark text-[11px] font-bold px-3 py-2.5 rounded-luxury animate-fade-in">
+        <div className="flex items-center gap-2 bg-brand-green-dark/10 border border-brand-green-dark/20 text-brand-green-dark text-[11px] font-bold px-3 py-2.5 rounded-luxury">
           <CheckCircle2 size={14} />
           ¡Producto registrado en el catálogo!
         </div>
@@ -763,9 +805,7 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
             Precio ($) <span className="text-red-400">*</span>
           </label>
           <input
-            type="number"
-            min="1"
-            step="0.5"
+            type="number" min="1" step="0.5"
             value={price}
             onChange={(e) => { setPrice(e.target.value); setErrors(p => ({ ...p, price: undefined })); }}
             placeholder="62.00"
@@ -781,8 +821,7 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
             Stock Inicial <span className="text-red-400">*</span>
           </label>
           <input
-            type="number"
-            min="1"
+            type="number" min="1"
             value={stock}
             onChange={(e) => { setStock(e.target.value); setErrors(p => ({ ...p, stock: undefined })); }}
             placeholder="30"
@@ -835,15 +874,56 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
         rows={3}
       />
 
-      {/* ── Image Uploader ──────────────────────────────────────── */}
-      <div className="pt-1 pb-1 border-t border-brand-black/5">
-        <ProductImageUploader
-          onImagesChange={handleImagesChange}
-          maxImages={6}
+      {/* ── Image picker ───────────────────────────────────────── */}
+      <div className="border-t border-brand-black/5 pt-3 space-y-2">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
+          Imagen del Producto
+        </label>
+
+        {imagePreview ? (
+          /* Preview + remove */
+          <div className="relative w-full aspect-video rounded-luxury overflow-hidden border border-brand-black/10 bg-brand-gray-soft">
+            <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={clearImage}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-brand-black/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer shadow"
+            >
+              <X size={13} />
+            </button>
+            <div className="absolute bottom-2 left-2 bg-brand-black/60 text-white text-[9px] font-bold px-2 py-0.5 rounded-full truncate max-w-[80%]">
+              {imageFile?.name}
+            </div>
+          </div>
+        ) : (
+          /* Drop zone / click area */
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex flex-col items-center gap-2 py-6 border-2 border-dashed border-brand-black/12 rounded-luxury hover:border-brand-green-dark/50 hover:bg-brand-green-dark/3 transition-all cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-full bg-brand-black/5 flex items-center justify-center">
+              <ImagePlus size={18} className="text-brand-black/40" />
+            </div>
+            <span className="text-xs font-bold text-brand-black/50">Haz clic para seleccionar imagen</span>
+            <span className="text-[9px] text-brand-black/30 font-medium">PNG · JPG · WEBP · Máx. 5 MB</span>
+          </button>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          className="hidden"
+          onChange={handleFileChange}
         />
-        {!hasUploadedImages && (
-          <p className="text-[10px] text-brand-black/35 font-medium mt-2">
-            Sin imágenes: se asignará una foto de stock automáticamente.
+
+        {uploadError && (
+          <p className="text-[10px] text-red-500 font-semibold">{uploadError}</p>
+        )}
+        {!imageFile && (
+          <p className="text-[10px] text-brand-black/30 font-medium">
+            Opcional — el producto se guardará sin imagen si no seleccionas ninguna.
           </p>
         )}
       </div>
@@ -853,10 +933,15 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
         type="submit"
         variant="primary"
         fullWidth
-        disabled={status === 'submitting'}
+        disabled={isBusy}
         className="py-3 text-xs tracking-wider"
       >
-        {status === 'submitting' ? (
+        {status === 'uploading' ? (
+          <span className="flex items-center gap-2">
+            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Subiendo imagen…
+          </span>
+        ) : status === 'submitting' ? (
           <span className="flex items-center gap-2">
             <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             Guardando producto…

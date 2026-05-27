@@ -461,17 +461,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // ── helper: fetch DB profile, fall back to auth metadata if inaccessible ──
   const resolveUser = async (authUser: { id: string; email?: string; user_metadata?: any }): Promise<User> => {
-    const { data: profile } = await supabase.from('users').select('*').eq('id', authUser.id).maybeSingle();
-    if (profile) return mapProfile(profile);
-    // DB inaccessible → try to create profile silently
-    const meta = authUser.user_metadata || {};
-    await supabase.from('users').upsert({
-      id: authUser.id,
-      email: authUser.email!,
-      full_name: meta.full_name || authUser.email?.split('@')[0] || 'Usuario',
-      role: meta.role || 'customer'
-    }).select().single();
-    return mapAuthMeta(authUser);
+    const fallback = mapAuthMeta(authUser);
+    try {
+      const timeout = new Promise<{ data: null; error: null }>(resolve =>
+        setTimeout(() => resolve({ data: null, error: null }), 5000)
+      );
+      const { data: profile } = await Promise.race([
+        supabase.from('users').select('*').eq('id', authUser.id).maybeSingle(),
+        timeout
+      ]);
+      if (profile) return mapProfile(profile);
+      // Fire-and-forget: do NOT await — prevents login from hanging
+      const meta = authUser.user_metadata || {};
+      supabase.from('users').upsert({
+        id: authUser.id,
+        email: authUser.email!,
+        full_name: meta.full_name || authUser.email?.split('@')[0] || 'Usuario',
+        role: meta.role || 'customer'
+      }).then(() => {}, () => {});
+    } catch {
+      // Network error — fall through to fallback
+    }
+    return fallback;
   };
 
   // Session recovery and Auth synchronization

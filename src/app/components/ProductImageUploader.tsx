@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { supabase } from '../../supabase';
 import { Upload, X, CheckCircle2, AlertCircle, ImageIcon, Star } from 'lucide-react';
 
@@ -27,13 +27,6 @@ interface ProductImageUploaderProps {
 // ============================================================================
 const BUCKET = 'product-images';
 
-// Verify bucket exists — we cannot create it with the anon key.
-// If missing, run SKINLY_SETUP.sql in the Supabase SQL Editor.
-async function checkBucket(): Promise<boolean> {
-  const { data } = await supabase.storage.getBucket(BUCKET);
-  return !!data;
-}
-
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -43,14 +36,8 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
 }) => {
   const [slots, setSlots] = useState<ImageSlot[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [bucketReady, setBucketReady] = useState<boolean | null>(null); // null = checking
   const inputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
-
-  // Check bucket exists on mount
-  useEffect(() => {
-    checkBucket().then(setBucketReady);
-  }, []);
 
   // Notify parent whenever slot URLs change
   const notifyParent = useCallback((updated: ImageSlot[]) => {
@@ -66,15 +53,7 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
     return null;
   };
 
-  const uploadSlot = useCallback(async (slot: ImageSlot, ready = bucketReady) => {
-    if (!ready) {
-      setSlots(prev => prev.map(s =>
-        s.id === slot.id
-          ? { ...s, status: 'error' as UploadStatus, progress: 0, error: 'Bucket no configurado. Ejecuta SKINLY_SETUP.sql en el dashboard de Supabase.' }
-          : s
-      ));
-      return;
-    }
+  const uploadSlot = useCallback(async (slot: ImageSlot) => {
     const ext = slot.file.name.split('.').pop() || 'jpg';
     const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
@@ -99,10 +78,13 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
       clearInterval(ticker);
 
       if (error) {
+        const msg = error.message.toLowerCase().includes('bucket')
+          ? 'Bucket no encontrado. Ejecuta SKINLY_SETUP.sql en Supabase SQL Editor.'
+          : error.message;
         setSlots(prev => {
           const updated = prev.map(s =>
             s.id === slot.id
-              ? { ...s, status: 'error' as UploadStatus, progress: 0, error: error.message }
+              ? { ...s, status: 'error' as UploadStatus, progress: 0, error: msg }
               : s
           );
           notifyParent(updated);
@@ -134,7 +116,7 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
         return updated;
       });
     }
-  }, [notifyParent]);
+  }, [notifyParent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const processFiles = useCallback((files: File[]) => {
     setSlots(prev => {
@@ -237,17 +219,6 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
           )}
         </span>
       </div>
-
-      {/* ── Bucket not ready warning ──────────────────────────── */}
-      {bucketReady === false && (
-        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-semibold px-3 py-2.5 rounded-luxury leading-relaxed">
-          <AlertCircle size={13} className="mt-0.5 shrink-0 text-amber-600" />
-          <span>
-            Storage no configurado. Ejecuta <code className="font-mono bg-amber-100 px-1 rounded">SKINLY_SETUP.sql</code> en el{' '}
-            <span className="font-bold">SQL Editor de Supabase</span> para habilitar la subida de imágenes.
-          </span>
-        </div>
-      )}
 
       {/* ── Drop Zone ─────────────────────────────────────────── */}
       {canAddMore && (

@@ -6,7 +6,8 @@ import {
   ShieldCheck, ShieldAlert, BarChart3, Package, Truck,
   Award, Ticket, Trash2, CheckCircle2,
   Layers, UserCheck, Plus, Settings, DollarSign,
-  FileText, Terminal, Copy, AlertTriangle, ImagePlus, X
+  FileText, Terminal, Copy, AlertTriangle, ImagePlus, X,
+  Pencil, Star, StarOff
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -18,6 +19,7 @@ export const AdminDashboard: React.FC = () => {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'suppliers' | 'coupons' | 'customizer'>('overview');
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   // Guardia de seguridad - ¡DEBE ser rol admin!
   if (!currentUser || currentUser.role !== 'admin') {
@@ -246,69 +248,89 @@ export const AdminDashboard: React.FC = () => {
             ==================================================================== */}
         {activeTab === 'products' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* Directorio de productos (2/3) */}
+
+            {/* ── Lista de productos (2/3) ── */}
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-brand-white p-4 rounded-luxury border border-brand-black/5 shadow-sm font-semibold flex justify-between items-center text-xs text-brand-black/50">
                 <span>Catálogo Activo ({products.length} formulaciones)</span>
-                <span>Controles de auditoría y verificación mayorista</span>
+                <span>{products.filter(p => p.isFeatured).length} destacados</span>
               </div>
 
               <div className="bg-brand-white border border-brand-black/5 rounded-luxury divide-y divide-brand-black/5 overflow-hidden">
+                {products.length === 0 && (
+                  <p className="text-xs italic text-brand-black/40 text-center py-10">No hay productos registrados aún.</p>
+                )}
                 {products.map((p) => (
-                  <div key={p.id} className="p-4 sm:p-5 flex gap-4 text-xs items-center justify-between text-left">
-                    <div className="flex gap-4 items-center truncate">
-                      <img src={p.imageUrl} alt={p.name} className="w-12 h-15 object-cover rounded-luxury border border-brand-black/5 bg-brand-gray-soft shrink-0" />
-                      <div className="truncate space-y-0.5">
-                        <h4 className="font-heading text-sm font-bold text-brand-black truncate max-w-[160px] sm:max-w-xs">{p.name}</h4>
+                  <div
+                    key={p.id}
+                    className={`p-4 sm:p-5 flex gap-4 text-xs items-center justify-between text-left transition-colors ${
+                      editingProduct?.id === p.id ? 'bg-brand-green-dark/5 border-l-2 border-brand-green-dark' : ''
+                    }`}
+                  >
+                    {/* Imagen + info */}
+                    <div className="flex gap-3 items-center min-w-0">
+                      <div className="relative shrink-0">
+                        <img
+                          src={p.imageUrl || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=100'}
+                          alt={p.name}
+                          className="w-12 h-12 object-cover rounded-luxury border border-brand-black/5 bg-brand-gray-soft"
+                        />
+                        {p.isFeatured && (
+                          <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center shadow">
+                            <Star size={8} className="fill-white text-white" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 space-y-0.5">
+                        <h4 className="font-heading text-sm font-bold text-brand-black truncate max-w-[140px] sm:max-w-[220px]">{p.name}</h4>
                         <span className="block text-[10px] text-brand-black/35 font-semibold tracking-wider uppercase">{p.category}</span>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {/* Featured toggle */}
                           <button
-                            onClick={() => {
-                              const updated = { ...p, isVerified: !p.isVerified };
-                              editProduct(updated);
-                            }}
-                            className={`px-2 py-0.5 text-[8px] font-extrabold uppercase rounded-full tracking-wide border transition-all cursor-pointer ${
-                              p.isVerified 
-                                ? 'bg-brand-green-dark/15 text-brand-green-dark border-brand-green-dark/20' 
-                                : 'bg-brand-gray-soft text-brand-black/40 border-brand-black/5 hover:border-brand-black/15'
+                            onClick={() => editProduct({ ...p, isFeatured: !p.isFeatured })}
+                            title={p.isFeatured ? 'Quitar de destacados' : 'Marcar como destacado'}
+                            className={`flex items-center gap-1 px-2 py-0.5 text-[8px] font-extrabold uppercase rounded-full tracking-wide border transition-all cursor-pointer ${
+                              p.isFeatured
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                : 'bg-brand-gray-soft text-brand-black/40 border-brand-black/5 hover:border-amber-300 hover:text-amber-600'
                             }`}
                           >
-                            Sello Verificado: {p.isVerified ? 'SÍ' : 'NO'}
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              const updated = { ...p, isFeatured: !p.isFeatured };
-                              editProduct(updated);
-                            }}
-                            className={`px-2 py-0.5 text-[8px] font-extrabold uppercase rounded-full tracking-wide border transition-all cursor-pointer ${
-                              p.isFeatured 
-                                ? 'bg-brand-green-light text-brand-black border-brand-green-light' 
-                                : 'bg-brand-gray-soft text-brand-black/40 border-brand-black/5 hover:border-brand-black/15'
-                            }`}
-                          >
-                            Destacado: {p.isFeatured ? 'SÍ' : 'NO'}
+                            {p.isFeatured ? <Star size={8} className="fill-amber-500 text-amber-500" /> : <StarOff size={8} />}
+                            {p.isFeatured ? 'Destacado' : 'Destacar'}
                           </button>
                         </div>
                       </div>
                     </div>
 
-                    {/* Stock, precio y herramientas */}
-                    <div className="text-right space-y-2 shrink-0">
-                      <div>
+                    {/* Precio, stock y acciones */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right hidden sm:block">
                         <span className="font-black text-brand-black block text-sm">${p.price.toFixed(2)}</span>
-                        <span className={`block text-[10px] font-bold ${p.stock <= 15 ? 'text-red-500 font-extrabold' : 'text-brand-black/40'}`}>
-                          Stock: {p.stock} unidades
+                        <span className={`block text-[10px] font-bold ${p.stock <= 15 ? 'text-red-500' : 'text-brand-black/40'}`}>
+                          {p.stock} uds.
                         </span>
                       </div>
-                      
+                      {/* Edit */}
                       <button
-                        onClick={() => deleteProduct(p.id)}
-                        className="p-1 text-brand-black/30 hover:text-red-600 transition-colors cursor-pointer"
-                        title="Eliminar producto"
+                        onClick={() => setEditingProduct(editingProduct?.id === p.id ? null : p)}
+                        title="Editar producto"
+                        className={`p-1.5 rounded-luxury transition-colors cursor-pointer border ${
+                          editingProduct?.id === p.id
+                            ? 'bg-brand-green-dark text-white border-brand-green-dark'
+                            : 'text-brand-black/40 border-brand-black/8 hover:text-brand-green-dark hover:border-brand-green-dark/30'
+                        }`}
                       >
-                        <Trash2 size={14} />
+                        <Pencil size={13} />
+                      </button>
+                      {/* Delete */}
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`¿Eliminar "${p.name}"?`)) deleteProduct(p.id);
+                        }}
+                        title="Eliminar producto"
+                        className="p-1.5 text-brand-black/30 hover:text-red-600 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
@@ -316,89 +338,146 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Formulario para agregar producto (1/3) */}
-            <div className="bg-brand-white p-6 rounded-luxury border border-brand-black/5 shadow-sm space-y-6 text-left h-fit">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-black pb-2 border-b border-brand-black/5 flex items-center gap-1.5">
-                <Plus size={14} />
-                Registrar Nuevo Producto
-              </h3>
-
-              <ProductAddWizard onAdd={(prodData) => addProduct(prodData)} />
+            {/* ── Panel derecho: Agregar o Editar (1/3) ── */}
+            <div className="bg-brand-white p-6 rounded-luxury border border-brand-black/5 shadow-sm space-y-6 text-left h-fit sticky top-4">
+              {editingProduct ? (
+                <>
+                  <div className="flex items-center justify-between pb-2 border-b border-brand-black/5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-brand-black flex items-center gap-1.5">
+                      <Pencil size={13} className="text-brand-green-dark" />
+                      Editar Producto
+                    </h3>
+                    <button
+                      onClick={() => setEditingProduct(null)}
+                      className="text-brand-black/30 hover:text-brand-black transition-colors cursor-pointer"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                  <ProductEditWizard
+                    product={editingProduct}
+                    onSave={async (prodData) => {
+                      await editProduct(prodData);
+                      setEditingProduct(null);
+                    }}
+                    onCancel={() => setEditingProduct(null)}
+                  />
+                </>
+              ) : (
+                <>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-brand-black pb-2 border-b border-brand-black/5 flex items-center gap-1.5">
+                    <Plus size={14} />
+                    Registrar Nuevo Producto
+                  </h3>
+                  <ProductAddWizard onAdd={(prodData) => addProduct(prodData)} />
+                </>
+              )}
             </div>
 
           </div>
         )}
 
         {/* ====================================================================
-            PESTAÑA 3: GESTIÓN DE PEDIDOS Y DEVOLUCIONES
+            PESTAÑA 3: GESTIÓN DE PEDIDOS
             ==================================================================== */}
         {activeTab === 'orders' && (
-          <div className="bg-brand-white border border-brand-black/5 rounded-luxury divide-y divide-brand-black/5 overflow-hidden">
-            <div className="p-4 bg-brand-gray-soft flex justify-between items-center text-xs font-bold text-brand-black/50">
-              <span>Cumplimiento de Pedidos</span>
-              <span>Registros de Despacho Pendiente</span>
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="bg-brand-white p-4 rounded-luxury border border-brand-black/5 shadow-sm flex justify-between items-center text-xs font-bold text-brand-black/50">
+              <span>{orders.length} pedidos en total</span>
+              <span>{orders.filter(o => o.status === 'pending').length} pendientes de despacho</span>
             </div>
 
-            {orders.map((o) => (
-              <div key={o.id} className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-4 gap-6 text-xs items-center text-left">
-                
-                {/* ID y Fecha */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-brand-black/40 uppercase block">ID del Pedido</span>
-                  <span className="font-mono font-bold text-brand-green-dark block">{o.id.toUpperCase()}</span>
-                  <span className="text-brand-black/50 block font-semibold">{new Date(o.createdAt).toLocaleDateString('es-MX')}</span>
+            {orders.length === 0 ? (
+              <p className="text-xs italic text-brand-black/40 text-center py-14 bg-brand-white rounded-luxury border border-brand-black/5">
+                No hay pedidos registrados aún.
+              </p>
+            ) : (
+              <div className="bg-brand-white border border-brand-black/5 rounded-luxury overflow-hidden">
+                {/* Table header */}
+                <div className="hidden md:grid grid-cols-[1fr_1.4fr_0.8fr_0.7fr_1.1fr] gap-4 px-5 py-3 bg-brand-gray-soft border-b border-brand-black/5 text-[10px] font-extrabold uppercase tracking-wider text-brand-black/40">
+                  <span>Pedido / Fecha</span>
+                  <span>Cliente</span>
+                  <span>Total</span>
+                  <span>Artículos</span>
+                  <span>Estado</span>
                 </div>
 
-                {/* Detalles del cliente */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-brand-black/40 uppercase block">Destinatario</span>
-                  <span className="font-bold text-brand-black block">{o.customerName}</span>
-                  <span className="text-brand-black/50 block truncate max-w-[200px]" title={o.address}>{o.address}, {o.city}</span>
-                </div>
+                <div className="divide-y divide-brand-black/5">
+                  {orders.map((o) => {
+                    // Resolve email from registeredUsers using customerId
+                    const userRecord = registeredUsers.find(u => u.id === o.customerId);
+                    const email = o.customerEmail || userRecord?.email || '—';
+                    const shortId = o.id.slice(0, 8).toUpperCase();
 
-                {/* Resumen de precios */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-brand-black/40 uppercase block">Importe del Pedido</span>
-                  <span className="font-black text-brand-black block">${o.total.toFixed(2)}</span>
-                  {o.couponCode && (
-                    <span className="text-[9px] font-bold text-indigo-600 block uppercase">
-                      Cupón: {o.couponCode} (-${o.discountAmount.toFixed(2)})
-                    </span>
-                  )}
-                </div>
+                    const statusConfig: Record<string, { label: string; cls: string }> = {
+                      pending:   { label: 'Pendiente',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+                      shipped:   { label: 'Enviado',     cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+                      delivered: { label: 'Entregado',   cls: 'bg-brand-green-dark/10 text-brand-green-dark border-brand-green-dark/20' },
+                      refunded:  { label: 'Reembolsado', cls: 'bg-red-50 text-red-700 border-red-200' },
+                    };
+                    const sc = statusConfig[o.status] ?? statusConfig.pending;
 
-                {/* Acciones de estado */}
-                <div className="space-y-2 flex flex-col items-start md:items-end">
-                  <Select
-                    options={[
-                      { value: 'pending', label: 'Pendiente' },
-                      { value: 'shipped', label: 'Enviado' },
-                      { value: 'delivered', label: 'Entregado' },
-                      { value: 'refunded', label: 'Reembolsado' }
-                    ]}
-                    value={o.status}
-                    onChange={async (e) => {
-                      await updateOrderStatus(o.id, e.target.value as any);
-                      alert(`Estado del pedido actualizado a "${e.target.value}" exitosamente!`);
-                    }}
-                    className="!mb-0 py-1.5 px-3 text-xs w-36"
-                  />
-                  
-                  {o.status !== 'refunded' && (
-                    <button
-                      onClick={async () => {
-                        await updateOrderStatus(o.id, 'refunded');
-                        alert('Pedido marcado como Reembolsado. Total acreditado de vuelta a la cuenta del cliente.');
-                      }}
-                      className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
-                    >
-                      Procesar Devolución / Reembolso
-                    </button>
-                  )}
-                </div>
+                    return (
+                      <div key={o.id} className="px-5 py-4 grid grid-cols-1 md:grid-cols-[1fr_1.4fr_0.8fr_0.7fr_1.1fr] gap-3 md:gap-4 text-xs items-center">
 
+                        {/* ID + fecha */}
+                        <div className="space-y-0.5">
+                          <span className="font-mono font-black text-brand-green-dark text-[11px] block">#{shortId}</span>
+                          <span className="text-[10px] text-brand-black/40 font-semibold block">
+                            {new Date(o.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+
+                        {/* Cliente */}
+                        <div className="space-y-0.5 min-w-0">
+                          <span className="font-bold text-brand-black block truncate">{o.customerName}</span>
+                          <span className="text-[10px] text-brand-black/40 block truncate">{email}</span>
+                          <span className="text-[10px] text-brand-black/30 block truncate">{o.city}</span>
+                        </div>
+
+                        {/* Total */}
+                        <div className="space-y-0.5">
+                          <span className="font-black text-brand-black text-sm block">${o.total.toFixed(2)}</span>
+                          {o.couponCode && (
+                            <span className="text-[9px] font-bold text-indigo-500 block">
+                              -{o.couponCode}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Items count */}
+                        <div>
+                          <span className="text-brand-black/60 font-semibold">
+                            {o.items.reduce((s, i) => s + i.quantity, 0)} uds.
+                          </span>
+                        </div>
+
+                        {/* Estado */}
+                        <div className="flex flex-col gap-1.5 items-start md:items-end">
+                          <span className={`px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide rounded-full border ${sc.cls}`}>
+                            {sc.label}
+                          </span>
+                          <select
+                            value={o.status}
+                            onChange={async (e) => {
+                              await updateOrderStatus(o.id, e.target.value as any);
+                            }}
+                            className="text-[10px] font-semibold border border-brand-black/10 rounded-luxury px-2 py-1 bg-brand-white text-brand-black/70 outline-none focus:border-brand-green-dark cursor-pointer transition-colors"
+                          >
+                            <option value="pending">Pendiente</option>
+                            <option value="shipped">Enviado</option>
+                            <option value="delivered">Entregado</option>
+                            <option value="refunded">Reembolsado</option>
+                          </select>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         )}
 
@@ -497,7 +576,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="bg-brand-white border border-brand-black/5 rounded-luxury divide-y divide-brand-black/5 overflow-hidden">
-                {coupons.map((c) => (
+                {coupons.map((c: Coupon) => (
                   <div key={c.code} className="p-4 sm:p-5 flex justify-between items-center text-xs">
                     
                     <div className="space-y-1">
@@ -950,6 +1029,212 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
           'Agregar al Catálogo'
         )}
       </Button>
+
+    </form>
+  );
+};
+
+// ============================================================================
+// COMPONENTE AUXILIAR - FORMULARIO PARA EDITAR PRODUCTO EXISTENTE
+// ============================================================================
+const ProductEditWizard: React.FC<{
+  product: Product;
+  onSave: (prod: Product) => Promise<void>;
+  onCancel: () => void;
+}> = ({ product, onSave, onCancel }) => {
+  const [name, setName] = useState(product.name);
+  const [desc, setDesc] = useState(product.description);
+  const [price, setPrice] = useState(String(product.price));
+  const [stock, setStock] = useState(String(product.stock));
+  const [category, setCategory] = useState(product.category);
+  const [ingredients, setIngredients] = useState(product.ingredients.join(', '));
+  const [isFeatured, setIsFeatured] = useState(product.isFeatured);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>(product.imageUrl || '');
+  const [isNewImage, setIsNewImage] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'saving'>('idle');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setUploadError('Solo imágenes (PNG, JPG, WEBP)'); return; }
+    if (file.size > 5 * 1024 * 1024) { setUploadError('Máx. 5 MB'); return; }
+    setUploadError('');
+    setImageFile(file);
+    if (isNewImage && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    setImagePreview(URL.createObjectURL(file));
+    setIsNewImage(true);
+    e.target.value = '';
+  };
+
+  const clearImage = () => {
+    if (isNewImage && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview(product.imageUrl || '');
+    setIsNewImage(false);
+    setUploadError('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || Number(price) <= 0 || Number(stock) < 0) return;
+
+    setUploadError('');
+    let finalImageUrl = product.imageUrl || '';
+    let finalImages = product.images ?? (product.imageUrl ? [product.imageUrl] : []);
+
+    if (imageFile && isNewImage) {
+      setStatus('uploading');
+      const path = `products/${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const { data, error: uploadErr } = await supabase.storage
+        .from('product-images')
+        .upload(path, imageFile, { cacheControl: '3600', upsert: false, contentType: imageFile.type });
+      if (uploadErr) {
+        setUploadError(`Error al subir: ${uploadErr.message}`);
+        setStatus('idle');
+        return;
+      }
+      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(data.path);
+      finalImageUrl = publicUrl;
+      finalImages = [publicUrl];
+    }
+
+    setStatus('saving');
+    await onSave({
+      ...product,
+      name: name.trim(),
+      description: desc.trim(),
+      price: Number(price),
+      stock: Number(stock),
+      category,
+      ingredients: ingredients.split(',').map(i => i.trim()).filter(Boolean),
+      imageUrl: finalImageUrl,
+      images: finalImages,
+      isFeatured,
+    });
+    setStatus('idle');
+  };
+
+  const isBusy = status !== 'idle';
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+
+      {/* Name */}
+      <div>
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1">Nombre *</label>
+        <input value={name} onChange={e => setName(e.target.value)} required
+          className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all" />
+      </div>
+
+      {/* Price + Stock */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1">Precio ($) *</label>
+          <input type="number" min="0.5" step="0.5" value={price} onChange={e => setPrice(e.target.value)} required
+            className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all" />
+        </div>
+        <div>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1">Stock *</label>
+          <input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} required
+            className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all" />
+        </div>
+      </div>
+
+      {/* Category */}
+      <div>
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1">Categoría</label>
+        <select value={category} onChange={e => setCategory(e.target.value)}
+          className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all cursor-pointer">
+          {['Serums','Moisturizers','Cleansers','Toners','Anti-Aging'].map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Ingredients */}
+      <div>
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1">
+          Ingredientes <span className="normal-case font-normal text-brand-black/30">(coma separados)</span>
+        </label>
+        <textarea rows={2} value={ingredients} onChange={e => setIngredients(e.target.value)}
+          className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all resize-none" />
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1">Descripción</label>
+        <textarea rows={2} value={desc} onChange={e => setDesc(e.target.value)}
+          className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all resize-none" />
+      </div>
+
+      {/* Featured toggle */}
+      <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
+        <div
+          onClick={() => setIsFeatured(f => !f)}
+          className={`relative w-9 h-5 rounded-full transition-colors border ${isFeatured ? 'bg-amber-400 border-amber-400' : 'bg-brand-black/10 border-brand-black/10'}`}
+        >
+          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${isFeatured ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </div>
+        <span className="text-xs font-semibold text-brand-black/70">
+          {isFeatured ? '⭐ Producto Destacado' : 'Marcar como Destacado'}
+        </span>
+      </label>
+
+      {/* Image */}
+      <div className="border-t border-brand-black/5 pt-3 space-y-2">
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60">Imagen</label>
+
+        {imagePreview ? (
+          <div className="relative w-full aspect-video rounded-luxury overflow-hidden border border-brand-black/10 bg-brand-gray-soft">
+            <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
+            {isNewImage && (
+              <button type="button" onClick={clearImage}
+                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-brand-black/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer shadow">
+                <X size={11} />
+              </button>
+            )}
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-2 right-2 flex items-center gap-1 bg-brand-black/60 text-white text-[9px] font-bold px-2 py-1 rounded-luxury hover:bg-brand-black transition-colors cursor-pointer">
+              <ImagePlus size={10} />
+              Cambiar
+            </button>
+            {isNewImage && (
+              <span className="absolute top-2 left-2 bg-brand-green-dark text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">Nueva</span>
+            )}
+          </div>
+        ) : (
+          <button type="button" onClick={() => fileInputRef.current?.click()}
+            className="w-full flex flex-col items-center gap-2 py-5 border-2 border-dashed border-brand-black/12 rounded-luxury hover:border-brand-green-dark/50 transition-all cursor-pointer">
+            <ImagePlus size={18} className="text-brand-black/30" />
+            <span className="text-[10px] text-brand-black/40 font-semibold">Seleccionar imagen</span>
+          </button>
+        )}
+
+        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif"
+          className="hidden" onChange={handleFileChange} />
+        {uploadError && <p className="text-[10px] text-red-500 font-semibold">{uploadError}</p>}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2 pt-1">
+        <button type="button" onClick={onCancel} disabled={isBusy}
+          className="flex-1 py-2.5 text-xs font-bold border border-brand-black/10 rounded-luxury text-brand-black/60 hover:border-brand-black/20 hover:text-brand-black transition-all cursor-pointer disabled:opacity-40">
+          Cancelar
+        </button>
+        <button type="submit" disabled={isBusy}
+          className="flex-1 py-2.5 text-xs font-bold bg-brand-green-dark text-white rounded-luxury hover:bg-brand-black transition-all cursor-pointer disabled:opacity-40 flex items-center justify-center gap-1.5">
+          {status === 'uploading' ? (
+            <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Subiendo…</>
+          ) : status === 'saving' ? (
+            <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Guardando…</>
+          ) : (
+            <><CheckCircle2 size={12} />Guardar Cambios</>
+          )}
+        </button>
+      </div>
 
     </form>
   );

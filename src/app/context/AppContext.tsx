@@ -63,6 +63,7 @@ export interface Order {
   id: string;
   customerId: string;
   customerName: string;
+  customerEmail?: string;
   customerPhone: string;
   address: string;
   city: string;
@@ -153,6 +154,7 @@ interface AppContextType {
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
+  coupons: Coupon[];
   appliedCoupon: Coupon | null;
   applyCouponCode: (code: string) => { success: boolean; discountPercentage?: number; error?: string };
   removeCoupon: () => void;
@@ -262,7 +264,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Fetching Functions
   const fetchProducts = async () => {
-    const { data, error } = await supabase.from('products').select('*, categories(name)').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name)')
+      .order('featured', { ascending: false })
+      .order('created_at', { ascending: false });
     if (error) {
       // 42501 = permission denied: DB grants not yet configured
       if (error.code === '42501' || error.message.includes('permission denied')) {
@@ -1098,6 +1104,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       editProduct,
       deleteProduct,
 
+      coupons,
       cart,
       addToCart,
       removeFromCart,

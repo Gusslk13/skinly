@@ -1,0 +1,177 @@
+===============================================================================
+🧴 SKINLY - CÓDIGO COMPLETO DEL PROYECTO
+===============================================================================
+
+📋 INSTRUCCIONES:
+1. Crea una carpeta llamada "skinly"
+2. Copia cada archivo en su ubicación correspondiente
+3. Ejecuta: pnpm install
+4. Ejecuta: pnpm run dev
+
+===============================================================================
+📄 ARCHIVO: package.json
+===============================================================================
+
+{
+  "name": "skinly-ecommerce",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "lucide-react": "^0.487.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@tailwindcss/vite": "^4.1.12",
+    "tailwindcss": "^4.1.12",
+    "typescript": "^5.6.2",
+    "vite": "^6.3.5"
+  }
+}
+
+===============================================================================
+📄 ARCHIVO: vite.config.ts
+===============================================================================
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+})
+
+===============================================================================
+📄 ARCHIVO: tsconfig.json
+===============================================================================
+
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true
+  },
+  "include": ["src"]
+}
+
+===============================================================================
+📄 ARCHIVO: index.html
+===============================================================================
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skinly - Premium Skincare</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
+
+===============================================================================
+📄 ARCHIVO: src/main.tsx
+===============================================================================
+
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './app/App'
+import './styles/fonts.css'
+import './styles/theme.css'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+
+===============================================================================
+📄 ARCHIVO: src/styles/fonts.css
+===============================================================================
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+===============================================================================
+📄 ARCHIVO: src/styles/theme.css (PARTE 1/2)
+===============================================================================
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: #0D0A0B;
+  --card: #ffffff;
+  --card-foreground: #0D0A0B;
+  --primary: #297045;
+  --primary-foreground: #ffffff;
+  --secondary: #9FD356;
+  --secondary-foreground: #0D0A0B;
+  --muted: #F4F4F9;
+  --border: rgba(0, 0, 0, 0.08);
+  --radius: 0.75rem;
+
+  /* Skinly Brand Colors */
+  --skinly-dark-green: #297045;
+  --skinly-light-green: #9FD356;
+  --skinly-soft-gray: #F4F4F9;
+  --skinly-white: #FFFFFF;
+  --skinly-black: #0D0A0B;
+
+  /* Typography */
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+}
+
+===============================================================================
+
+💡 LOS ARCHIVOS PRINCIPALES DE REACT YA ESTÁN EN TU PROYECTO:
+
+- src/app/App.tsx
+- src/app/components/MobileApp.tsx
+- src/app/components/DesktopWebsite.tsx
+- src/app/components/figma/ImageWithFallback.tsx
+
+Puedes verlos en el explorador de archivos de Figma Make.
+
+===============================================================================
+✅ OPCIONES PARA OBTENER EL CÓDIGO COMPLETO:
+===============================================================================
+
+OPCIÓN 1: Usa este proyecto directamente (ya funciona en Figma Make)
+
+OPCIÓN 2: Pídeme que exporte el diseño a Figma
+
+OPCIÓN 3: Pídeme que te muestre el código completo de cada componente React
+
+===============================================================================

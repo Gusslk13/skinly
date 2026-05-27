@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+
+  /* Premium Startup Palette definitions */
+  --color-brand-green-dark: #297045;
+  --color-brand-green-light: #9FD356;
+  --color-brand-gray-soft: #F4F4F9;
+  --color-brand-white: #FFFFFF;
+  --color-brand-black: #0D0A0B;
+  
+  --color-primary: #297045;
+  --color-secondary: #9FD356;
+  
+  --radius-luxury: 0.75rem;
+
+  /* Custom Easings & Transitions for expensive movement */
+  --ease-luxury: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-luxury: 500ms;
+  --duration-luxury-slow: 800ms;
+
+  /* Premium Microinteractions and Animations */
+  --animate-fade-in-up: fade-in-up var(--duration-luxury-slow) var(--ease-luxury) forwards;
+  --animate-fade-in-down: fade-in-down var(--duration-luxury-slow) var(--ease-luxury) forwards;
+  --animate-fade-in: fade-in var(--duration-luxury) var(--ease-luxury) forwards;
+  --animate-scale-up-smooth: scale-up-smooth var(--duration-luxury-slow) var(--ease-luxury) forwards;
+  --animate-slide-up-subtle: slide-up-subtle var(--duration-luxury-slow) var(--ease-luxury) forwards;
+  --animate-shimmer: shimmer 2.5s infinite linear;
+  --animate-glow-pulse: glow-pulse 4s infinite ease-in-out;
+  --animate-parallax-float: parallax-float 7s infinite ease-in-out;
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in-down {
+    from {
+      opacity: 0;
+      transform: translateY(-16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes scale-up-smooth {
+    from {
+      opacity: 0;
+      transform: scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes slide-up-subtle {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 0px rgba(41, 112, 69, 0); }
+    50% { box-shadow: 0 0 16px rgba(41, 112, 69, 0.2); }
+  }
+  @keyframes parallax-float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-6px) rotate(0.3deg); }
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-gray-soft);
+    color: var(--color-brand-black);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}

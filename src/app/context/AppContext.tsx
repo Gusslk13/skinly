@@ -284,7 +284,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         reviewsCount: p.reviews_count,
         imageUrl: p.image_url,
         isVerified: p.is_verified,
-        isFeatured: p.is_featured,
+        isFeatured: p.featured,
         supplierId: p.supplier_id || undefined
       })));
     }
@@ -379,7 +379,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           reviewsCount: item.products.reviews_count,
           imageUrl: item.products.image_url,
           isVerified: item.products.is_verified,
-          isFeatured: item.products.is_featured,
+          isFeatured: item.products.featured,
           supplierId: item.products.supplier_id || undefined
         },
         quantity: item.quantity
@@ -692,7 +692,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         stock: productData.stock,
         image_url: productData.imageUrl,
         is_verified: productData.isVerified,
-        is_featured: productData.isFeatured,
+        featured: productData.isFeatured,
         supplier_id: productData.supplierId || currentUser?.id
       });
 
@@ -719,7 +719,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         stock: updatedProd.stock,
         image_url: updatedProd.imageUrl,
         is_verified: updatedProd.isVerified,
-        is_featured: updatedProd.isFeatured,
+        featured: updatedProd.isFeatured,
         supplier_id: updatedProd.supplierId
       }).eq('id', updatedProd.id);
 

@@ -4,7 +4,9 @@
       "Bash(npx vite *)",
       "Bash(not exist *)",
       "Bash(mkdir -p \"/c/Users/gusst/Desktop/Skinly/.claude\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

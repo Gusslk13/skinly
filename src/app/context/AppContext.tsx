@@ -966,7 +966,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await clearCart();
       fetchOrders(currentUser.id);
       fetchProducts();
-      setView('order-history');
+      // Navigation is handled by the caller (Checkout) so it can show a confirmation screen first
       return { success: true, orderId };
     } catch (err: any) {
       return { success: false, error: err.message };

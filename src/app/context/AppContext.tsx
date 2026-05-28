@@ -282,7 +282,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: p.id,
         name: p.name,
         description: p.description || '',
-        ingredients: p.ingredients || [],
+        ingredients: Array.isArray(p.ingredients)
+          ? p.ingredients
+          : (p.ingredients ? String(p.ingredients).split(',').map((s: string) => s.trim()).filter(Boolean) : []),
         category: p.categories?.name || 'Serums',
         price: parseFloat(p.price),
         discountPrice: p.discount_price ? parseFloat(p.discount_price) : undefined,
@@ -378,7 +380,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           id: item.products.id,
           name: item.products.name,
           description: item.products.description || '',
-          ingredients: item.products.ingredients || [],
+          ingredients: Array.isArray(item.products.ingredients)
+            ? item.products.ingredients
+            : (item.products.ingredients ? String(item.products.ingredients).split(',').map((s: string) => s.trim()).filter(Boolean) : []),
           category: item.products.categories?.name || 'Serums',
           price: parseFloat(item.products.price),
           discountPrice: item.products.discount_price ? parseFloat(item.products.discount_price) : undefined,

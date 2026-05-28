@@ -1042,15 +1042,23 @@ const ProductEditWizard: React.FC<{
   onSave: (prod: Product) => Promise<void>;
   onCancel: () => void;
 }> = ({ product, onSave, onCancel }) => {
-  const [name, setName] = useState(product.name);
-  const [desc, setDesc] = useState(product.description);
-  const [price, setPrice] = useState(String(product.price));
-  const [stock, setStock] = useState(String(product.stock));
-  const [category, setCategory] = useState(product.category);
-  const [ingredients, setIngredients] = useState(product.ingredients.join(', '));
-  const [isFeatured, setIsFeatured] = useState(product.isFeatured);
+  // Safely coerce every field — DB may return null/undefined for optional columns
+  const safeIngredients = (() => {
+    const raw = product.ingredients;
+    if (!raw) return '';
+    if (Array.isArray(raw)) return raw.join(', ');
+    return String(raw); // stored as plain text in DB
+  })();
+
+  const [name, setName] = useState(product.name ?? '');
+  const [desc, setDesc] = useState(product.description ?? '');
+  const [price, setPrice] = useState(product.price != null ? String(product.price) : '');
+  const [stock, setStock] = useState(product.stock != null ? String(product.stock) : '0');
+  const [category, setCategory] = useState(product.category ?? 'Serums');
+  const [ingredients, setIngredients] = useState(safeIngredients);
+  const [isFeatured, setIsFeatured] = useState(product.isFeatured ?? false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>(product.imageUrl || '');
+  const [imagePreview, setImagePreview] = useState<string>(product.imageUrl ?? '');
   const [isNewImage, setIsNewImage] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [status, setStatus] = useState<'idle' | 'uploading' | 'saving'>('idle');
@@ -1082,8 +1090,9 @@ const ProductEditWizard: React.FC<{
     if (!name.trim() || Number(price) <= 0 || Number(stock) < 0) return;
 
     setUploadError('');
-    let finalImageUrl = product.imageUrl || '';
-    let finalImages = product.images ?? (product.imageUrl ? [product.imageUrl] : []);
+    let finalImageUrl = product.imageUrl ?? '';
+    const existingImages = Array.isArray(product.images) ? product.images : (product.imageUrl ? [product.imageUrl] : []);
+    let finalImages = existingImages;
 
     if (imageFile && isNewImage) {
       setStatus('uploading');

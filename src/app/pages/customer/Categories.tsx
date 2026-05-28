@@ -1,25 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/ProductCard';
 import { Input, Select } from '../../components/UI';
 import { Search, SlidersHorizontal, Leaf, X } from 'lucide-react';
 
+// Display label overrides for known English DB category names
+const CATEGORY_LABELS: Record<string, string> = {
+  'Serums':        'Serums',
+  'Moisturizers':  'Hidratantes',
+  'Cleansers':     'Limpiadores',
+  'Toners':        'Tónicos',
+  'Anti-Aging':    'Antienvejecimiento',
+};
+
 export const Categories: React.FC = () => {
   const { products } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [maxPrice, setMaxPrice] = useState(100);
+  const [maxPrice, setMaxPrice] = useState(500);   // high default so nothing is hidden
   const [sortBy, setSortBy] = useState('featured');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const categories = ['Todos', 'Serums', 'Hidratantes', 'Limpiadores', 'Tónicos', 'Antienvejecimiento'];
+  // ── Build category list dynamically from whatever is in the products store ──
+  // This guarantees the filter values always match product.category exactly.
+  const availableCategories = useMemo(() => {
+    const unique = Array.from(
+      new Set(products.map(p => p.category).filter(Boolean))
+    ).sort();
+    console.log('[Categories] products in store:', products.length,
+      '| unique categories:', unique);
+    return unique;
+  }, [products]);
 
-  const categoryMap: Record<string, string> = {
-    'Hidratantes': 'Moisturizers',
-    'Limpiadores': 'Cleansers',
-    'Tónicos': 'Toners',
-    'Antienvejecimiento': 'Anti-Aging',
-  };
+  // Max price of any product — used to cap the slider
+  const maxProductPrice = useMemo(
+    () => Math.max(500, ...products.map(p => p.price)),
+    [products]
+  );
 
   const sortOptions = [
     { value: 'featured', label: 'Recomendados' },
@@ -28,15 +45,22 @@ export const Categories: React.FC = () => {
     { value: 'rating', label: 'Mejor Calificados' }
   ];
 
-  // Filtrado
+  // ── Filtrado ─────────────────────────────────────────────────────────────────
   const filteredProducts = products.filter(prod => {
-    const matchesSearch = prod.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          prod.ingredients.some(ing => ing.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const englishCat = categoryMap[selectedCategory] || selectedCategory;
-    const matchesCategory = selectedCategory === 'Todos' || prod.category === englishCat || prod.category === selectedCategory;
-    
-    const price = prod.discountPrice || prod.price;
+    // Search: name or any ingredient
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !q
+      || prod.name.toLowerCase().includes(q)
+      || (Array.isArray(prod.ingredients)
+           ? prod.ingredients.some(ing => ing.toLowerCase().includes(q))
+           : String(prod.ingredients ?? '').toLowerCase().includes(q));
+
+    // Category: compare directly against the DB value stored in product.category
+    const matchesCategory =
+      selectedCategory === 'Todos' || prod.category === selectedCategory;
+
+    // Price: compare against effective price
+    const price = prod.discountPrice ?? prod.price;
     const matchesPrice = price <= maxPrice;
 
     return matchesSearch && matchesCategory && matchesPrice;
@@ -58,7 +82,7 @@ export const Categories: React.FC = () => {
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('Todos');
-    setMaxPrice(100);
+    setMaxPrice(maxProductPrice);
     setSortBy('featured');
   };
 
@@ -104,23 +128,41 @@ export const Categories: React.FC = () => {
             </div>
           </div>
 
-          {/* Selector de categorías */}
+          {/* Selector de categorías — cargado dinámicamente desde los productos */}
           <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-brand-black/50">Categoría</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-brand-black/50">
+              Categoría
+            </label>
             <div className="flex flex-col gap-1.5">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`w-full text-left px-3 py-2 rounded-luxury text-xs font-semibold transition-all cursor-pointer ${
-                    selectedCategory === cat
-                      ? 'bg-brand-green-dark/10 text-brand-green-dark border-l-2 border-brand-green-dark'
-                      : 'hover:bg-brand-gray-soft text-brand-black/75'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+              {/* "Todos" siempre primero */}
+              <button
+                onClick={() => setSelectedCategory('Todos')}
+                className={`w-full text-left px-3 py-2 rounded-luxury text-xs font-semibold transition-all cursor-pointer ${
+                  selectedCategory === 'Todos'
+                    ? 'bg-brand-green-dark/10 text-brand-green-dark border-l-2 border-brand-green-dark'
+                    : 'hover:bg-brand-gray-soft text-brand-black/75'
+                }`}
+              >
+                Todos ({products.length})
+              </button>
+              {availableCategories.map((cat) => {
+                const label = CATEGORY_LABELS[cat] ?? cat;
+                const count = products.filter(p => p.category === cat).length;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`w-full text-left px-3 py-2 rounded-luxury text-xs font-semibold transition-all cursor-pointer flex justify-between items-center ${
+                      selectedCategory === cat
+                        ? 'bg-brand-green-dark/10 text-brand-green-dark border-l-2 border-brand-green-dark'
+                        : 'hover:bg-brand-gray-soft text-brand-black/75'
+                    }`}
+                  >
+                    <span>{label}</span>
+                    <span className="text-[10px] text-brand-black/30 font-bold">{count}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -132,16 +174,16 @@ export const Categories: React.FC = () => {
             </div>
             <input
               type="range"
-              min="10"
-              max="150"
+              min="0"
+              max={maxProductPrice}
               step="5"
               value={maxPrice}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
               className="w-full accent-brand-green-dark h-1 bg-brand-gray-soft rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-[9px] font-bold text-brand-black/30">
-              <span>$10</span>
-              <span>$150</span>
+              <span>$0</span>
+              <span>${maxProductPrice}</span>
             </div>
           </div>
         </aside>
@@ -241,11 +283,21 @@ export const Categories: React.FC = () => {
                 </div>
               </div>
 
-              {/* Categoría */}
+              {/* Categoría (móvil) */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-brand-black/50">Categoría</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {categories.map((cat) => (
+                  <button
+                    onClick={() => setSelectedCategory('Todos')}
+                    className={`px-3 py-2 rounded-luxury text-xs font-semibold transition-all cursor-pointer border ${
+                      selectedCategory === 'Todos'
+                        ? 'bg-brand-green-dark/15 text-brand-green-dark border-brand-green-dark'
+                        : 'border-brand-black/5 hover:border-brand-black/10 text-brand-black/75 bg-brand-white'
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {availableCategories.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
@@ -255,13 +307,13 @@ export const Categories: React.FC = () => {
                           : 'border-brand-black/5 hover:border-brand-black/10 text-brand-black/75 bg-brand-white'
                       }`}
                     >
-                      {cat}
+                      {CATEGORY_LABELS[cat] ?? cat}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Precio máximo */}
+              {/* Precio máximo (móvil) */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-brand-black/50">Precio Máximo</label>
@@ -269,16 +321,16 @@ export const Categories: React.FC = () => {
                 </div>
                 <input
                   type="range"
-                  min="10"
-                  max="150"
+                  min="0"
+                  max={maxProductPrice}
                   step="5"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full accent-brand-green-dark h-1.5 bg-brand-gray-soft rounded-lg appearance-none cursor-pointer"
                 />
                 <div className="flex justify-between text-[9px] font-bold text-brand-black/30">
-                  <span>$10</span>
-                  <span>$150</span>
+                  <span>$0</span>
+                  <span>${maxProductPrice}</span>
                 </div>
               </div>
             </div>

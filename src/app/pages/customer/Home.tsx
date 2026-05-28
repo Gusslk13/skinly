@@ -1,25 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/ProductCard';
 import { Button } from '../../components/UI';
 import { Award, Leaf, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
 
+const CATEGORY_LABELS: Record<string, string> = {
+  'Serums':       'Serums',
+  'Moisturizers': 'Hidratantes',
+  'Cleansers':    'Limpiadores',
+  'Toners':       'Tónicos',
+  'Anti-Aging':   'Antienvejecimiento',
+};
+
 export const Home: React.FC = () => {
   const { products, setView, featuredBanner, currentUser } = useApp();
   const [activeCategory, setActiveCategory] = useState('Todos');
 
-  const categories = ['Todos', 'Serums', 'Hidratantes', 'Limpiadores', 'Tónicos', 'Antienvejecimiento'];
+  // Derive categories from actual products — same values as in the store
+  const availableCategories = useMemo(
+    () => Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort(),
+    [products]
+  );
 
   const filteredProducts = products.filter(prod => {
-    const categoryMap: Record<string, string> = {
-      'Hidratantes': 'Moisturizers',
-      'Limpiadores': 'Cleansers',
-      'Tónicos': 'Toners',
-      'Antienvejecimiento': 'Anti-Aging',
-    };
-    const englishCat = categoryMap[activeCategory] || activeCategory;
-    const matchesCategory = activeCategory === 'Todos' || prod.category === englishCat || prod.category === activeCategory;
-    return matchesCategory;
+    return activeCategory === 'Todos' || prod.category === activeCategory;
   });
 
   const featuredProducts = filteredProducts.filter(p => p.isFeatured);
@@ -120,7 +124,17 @@ export const Home: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
-            {categories.map((cat) => (
+            <button
+              onClick={() => setActiveCategory('Todos')}
+              className={`px-4 py-2 text-xs font-bold rounded-full tracking-wide transition-all ease-luxury duration-300 cursor-pointer whitespace-nowrap border ${
+                activeCategory === 'Todos'
+                  ? 'bg-brand-black text-brand-white border-brand-black shadow-md'
+                  : 'bg-brand-white text-brand-black/60 border-brand-black/5 hover:border-brand-black/10'
+              }`}
+            >
+              Todos
+            </button>
+            {availableCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
@@ -130,7 +144,7 @@ export const Home: React.FC = () => {
                     : 'bg-brand-white text-brand-black/60 border-brand-black/5 hover:border-brand-black/10'
                 }`}
               >
-                {cat}
+                {CATEGORY_LABELS[cat] ?? cat}
               </button>
             ))}
           </div>

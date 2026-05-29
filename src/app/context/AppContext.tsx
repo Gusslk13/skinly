@@ -638,9 +638,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchCoupons();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
+      // SIGNED_IN fires on:
+      //  • Normal email/password login
+      //  • Google OAuth redirect (the client processes #access_token from the hash)
+      //  • Session restored from localStorage
+      // INITIAL_SESSION fires once on first load — also carries the session if one exists.
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         const mappedUser = await resolveUser(session.user);
         setCurrentUser(mappedUser);
+
+        // Clean up the OAuth hash fragment from the URL so it doesn't persist on refresh
+        if (window.location.hash.includes('access_token')) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        // Navigate based on role — covers the Google OAuth redirect case where
+        // initSession may have already run before the hash was processed.
+        setCurrentView(prev => {
+          // Only redirect if we're currently on an auth/splash screen
+          if (prev === 'splash' || prev === 'onboarding' || prev === 'login' || prev === 'register') {
+            if (mappedUser.role === 'admin') return 'admin-dashboard';
+            if (mappedUser.role === 'affiliate') return 'affiliate-dashboard';
+            if (mappedUser.role === 'supplier') return 'supplier-portal';
+            return 'home';
+          }
+          return prev; // already on a real page — don't interrupt
+        });
+
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setCart([]);

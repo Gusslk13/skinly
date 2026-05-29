@@ -1,108 +1,42 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Button, Input, Select, TextArea } from '../../components/UI';
 import {
-  ShieldCheck, ArrowRight, ChevronLeft, CreditCard,
-  Landmark, Truck, CheckCircle2, Package, Home
+  ShieldCheck, ChevronLeft, CreditCard,
+  Package, Home, AlertCircle, Loader2
 } from 'lucide-react';
 
-// ─── Confirmation screen shown after a successful order ───────────────────────
-const OrderConfirmation: React.FC<{
-  orderId: string;
-  total: number;
-  paymentMethod: string;
-  onViewOrders: () => void;
-  onContinueShopping: () => void;
-}> = ({ orderId, total, paymentMethod, onViewOrders, onContinueShopping }) => {
-  const shortId = orderId.slice(0, 8).toUpperCase();
-
-  const methodLabel: Record<string, string> = {
-    credit_card:    'Tarjeta de Crédito / Débito',
-    bank_transfer:  'Transferencia Bancaria',
-    delivery_cash:  'Efectivo al Recibir',
-  };
-
-  return (
-    <div className="max-w-lg mx-auto px-4 py-16 text-center space-y-8">
-      {/* Icon */}
-      <div className="w-20 h-20 rounded-full bg-brand-green-dark/10 border border-brand-green-dark/20 flex items-center justify-center mx-auto">
-        <CheckCircle2 size={36} className="text-brand-green-dark" strokeWidth={1.5} />
-      </div>
-
-      {/* Message */}
-      <div className="space-y-2">
-        <h1 className="font-heading text-3xl font-bold text-brand-black">
-          ¡Pedido Confirmado!
-        </h1>
-        <p className="text-sm text-brand-black/50 font-medium leading-relaxed max-w-sm mx-auto">
-          Tu pedido ha sido recibido y está siendo procesado. Recibirás una confirmación en breve.
-        </p>
-      </div>
-
-      {/* Order summary card */}
-      <div className="bg-brand-white border border-brand-black/5 rounded-luxury p-6 text-left space-y-4 shadow-sm">
-        <div className="flex justify-between items-center text-xs pb-3 border-b border-brand-black/5">
-          <span className="font-bold uppercase tracking-wider text-brand-black/40">Número de Pedido</span>
-          <span className="font-mono font-black text-brand-green-dark text-base">#{shortId}</span>
-        </div>
-        <div className="flex justify-between items-center text-xs">
-          <span className="text-brand-black/60 font-semibold">Total Cobrado</span>
-          <span className="font-black text-brand-black text-base">${total.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between items-center text-xs">
-          <span className="text-brand-black/60 font-semibold">Método de Pago</span>
-          <span className="font-semibold text-brand-black">{methodLabel[paymentMethod] ?? paymentMethod}</span>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button
-          onClick={onViewOrders}
-          className="flex-1 flex items-center justify-center gap-2 py-3 px-5 bg-brand-black text-brand-white text-xs font-bold rounded-luxury hover:bg-brand-green-dark transition-colors cursor-pointer"
-        >
-          <Package size={14} />
-          Ver Mis Pedidos
-        </button>
-        <button
-          onClick={onContinueShopping}
-          className="flex-1 flex items-center justify-center gap-2 py-3 px-5 border border-brand-black/10 text-brand-black text-xs font-bold rounded-luxury hover:border-brand-black/20 hover:bg-brand-gray-soft transition-colors cursor-pointer"
-        >
-          <Home size={14} />
-          Seguir Comprando
-        </button>
-      </div>
-    </div>
-  );
-};
+// ─── Direct Edge Function URL (bypasses supabase.functions.invoke to avoid
+//     response-parsing ambiguity when the function isn't deployed yet) ─────────
+const MP_EDGE_URL =
+  'https://bavarmytvyntpohimkqt.supabase.co/functions/v1/create-mp-preference';
 
 // ─── Main checkout page ───────────────────────────────────────────────────────
 export const Checkout: React.FC = () => {
-  const { cart, getCartTotals, appliedCoupon, placeOrder, goBack, setView, currentUser } = useApp();
+  const {
+    cart, getCartTotals, appliedCoupon,
+    createMPOrder, goBack, setView, currentUser,
+  } = useApp();
 
-  // Shipping form
-  const [fullName,   setFullName]   = useState(currentUser?.fullName  || '');
-  const [email,      setEmail]      = useState(currentUser?.email     || '');
-  const [phone,      setPhone]      = useState(currentUser?.phone     || '');
-  const [address,    setAddress]    = useState(currentUser?.address   || '');
-  const [city,       setCity]       = useState(currentUser?.city      || '');
-  const [state,      setState]      = useState('');
+  // ── Shipping form state ──────────────────────────────────────────────────────
+  const [fullName,   setFullName]   = useState(currentUser?.fullName   || '');
+  const [email,      setEmail]      = useState(currentUser?.email      || '');
+  const [phone,      setPhone]      = useState(currentUser?.phone      || '');
+  const [address,    setAddress]    = useState(currentUser?.address    || '');
+  const [city,       setCity]       = useState(currentUser?.city       || '');
+  const [stateField, setStateField] = useState('');
   const [postalCode, setPostalCode] = useState(currentUser?.postalCode || '');
   const [references, setReferences] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'bank_transfer' | 'delivery_cash'>('delivery_cash');
 
-  // UI state
-  const [loading,  setLoading]  = useState(false);
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [orderError, setOrderError] = useState('');
-
-  // Confirmation state — set on success
-  const [confirmedOrder, setConfirmedOrder] = useState<{ id: string; total: number } | null>(null);
+  // ── UI state ─────────────────────────────────────────────────────────────────
+  const [loading,     setLoading]     = useState(false);
+  const [loadingStep, setLoadingStep] = useState('');
+  const [errors,      setErrors]      = useState<Record<string, string>>({});
+  const [orderError,  setOrderError]  = useState('');
 
   const { subtotal, discount, shipping, total } = getCartTotals();
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // ── Validation ──────────────────────────────────────────────────────────────
+  // ── Field-level validation ───────────────────────────────────────────────────
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     if (!fullName.trim())   e.fullName   = 'El nombre completo es requerido.';
@@ -115,41 +49,140 @@ export const Checkout: React.FC = () => {
     return Object.keys(e).length === 0;
   };
 
-  // ── Submit ───────────────────────────────────────────────────────────────────
+  // ── Helper: show inline error and re-enable the button ──────────────────────
+  const abort = (msg: string) => {
+    console.error('[Checkout MP]', msg);
+    setOrderError(msg);
+    setLoading(false);
+    setLoadingStep('');
+  };
+
+  // ── Submit handler — MercadoPago Checkout Pro ────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setLoading(true);
     setOrderError('');
+    setLoadingStep('Creando tu pedido…');
+
+    // Track the created orderId so we can cancel it on any failure
+    let createdOrderId: string | null = null;
+
+    // ── Step 1: persist order as 'pendiente_pago' ──────────────────────────────
+    let orderRes: { success: boolean; orderId?: string; error?: string };
     try {
-      const res = await placeOrder({ fullName, phone, address, city, postalCode, references, paymentMethod });
-      if (res.success && res.orderId) {
-        setConfirmedOrder({ id: res.orderId, total });
-      } else {
-        setOrderError(res.error || 'Error al realizar el pedido. Intenta nuevamente.');
-      }
+      orderRes = await createMPOrder({
+        fullName, email, phone,
+        address, city,
+        state: stateField,
+        postalCode,
+        references,
+      });
+    } catch (err: any) {
+      return abort(`Error inesperado al crear el pedido: ${err?.message ?? err}`);
+    }
+
+    if (!orderRes.success || !orderRes.orderId) {
+      return abort(orderRes.error || 'No se pudo crear el pedido. Intenta nuevamente.');
+    }
+    createdOrderId = orderRes.orderId;
+
+    // ── Step 2: call Edge Function to get MP init_point ────────────────────────
+    setLoadingStep('Conectando con MercadoPago…');
+
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+
+    let rawResponse: Response;
+    try {
+      rawResponse = await fetch(MP_EDGE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({
+          items: cart.map(item => ({
+            productId: item.product.id,
+            name:      item.product.name,
+            price:     item.product.discountPrice ?? item.product.price,
+            quantity:  item.quantity,
+            imageUrl:  item.product.imageUrl,
+            category:  item.product.category,
+          })),
+          buyer:   { name: fullName, email, phone },
+          orderId: createdOrderId,
+          siteUrl: window.location.origin,
+        }),
+      });
+    } catch (netErr: any) {
+      // Network-level failure (CORS, DNS, offline, etc.)
+      await cancelOrder(createdOrderId, anonKey);
+      return abort(
+        `Error de red al conectar con MercadoPago: ${netErr?.message ?? 'sin detalles'}. ` +
+        'Verifica que la Edge Function esté desplegada y CORS esté habilitado.'
+      );
+    }
+
+    // ── Step 3: parse JSON response ────────────────────────────────────────────
+    let mpData: any;
+    try {
+      mpData = await rawResponse.json();
     } catch {
-      setOrderError('Ocurrió un error inesperado. Por favor intenta de nuevo.');
-    } finally {
-      setLoading(false);
+      await cancelOrder(createdOrderId, anonKey);
+      return abort(
+        `La función de pago devolvió una respuesta no válida (HTTP ${rawResponse.status}). ` +
+        'Es posible que la Edge Function no esté desplegada aún.'
+      );
+    }
+
+    // ── Step 4: check for API-level errors ─────────────────────────────────────
+    if (!rawResponse.ok || mpData?.error) {
+      await cancelOrder(createdOrderId, anonKey);
+      return abort(
+        mpData?.error ||
+        mpData?.message ||
+        `Error del servidor de pagos (HTTP ${rawResponse.status}).`
+      );
+    }
+
+    const initPoint: string | undefined = mpData?.init_point;
+    if (!initPoint || typeof initPoint !== 'string' || !initPoint.startsWith('http')) {
+      await cancelOrder(createdOrderId, anonKey);
+      return abort(
+        'MercadoPago no devolvió una URL de pago válida. ' +
+        `Respuesta recibida: ${JSON.stringify(mpData)}`
+      );
+    }
+
+    // ── Step 5: redirect (do NOT call setLoading after this point) ─────────────
+    setLoadingStep('Redirigiendo a MercadoPago…');
+    // Small delay so the user sees the step message before the page navigates
+    setTimeout(() => { window.location.href = initPoint; }, 300);
+  };
+
+  // ─── Cancel the pending order in Supabase if the MP flow fails ─────────────
+  // Uses fetch directly so it doesn't depend on the Supabase client state.
+  const cancelOrder = async (orderId: string, anonKey: string) => {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';
+      await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+          'apikey': anonKey,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ status: 'cancelado' }),
+      });
+    } catch {
+      // best-effort — not critical
     }
   };
 
-  // ── Show confirmation if order was placed ────────────────────────────────────
-  if (confirmedOrder) {
-    return (
-      <OrderConfirmation
-        orderId={confirmedOrder.id}
-        total={confirmedOrder.total}
-        paymentMethod={paymentMethod}
-        onViewOrders={() => setView('order-history')}
-        onContinueShopping={() => setView('home')}
-      />
-    );
-  }
-
-  // ── Checkout form ────────────────────────────────────────────────────────────
+  // ── Checkout form ─────────────────────────────────────────────────────────────
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 space-y-8">
 
@@ -157,7 +190,8 @@ export const Checkout: React.FC = () => {
       <div className="flex justify-between items-center pb-4 border-b border-brand-black/5">
         <button
           onClick={goBack}
-          className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-brand-black/50 hover:text-brand-black cursor-pointer transition-colors"
+          disabled={loading}
+          className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-brand-black/50 hover:text-brand-black cursor-pointer transition-colors disabled:opacity-40"
         >
           <ChevronLeft size={16} />
           Regresar a la Bolsa
@@ -171,7 +205,7 @@ export const Checkout: React.FC = () => {
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* ── Left: shipping + payment (2/3) ────────────────────────────────── */}
-        <div className="lg:col-span-2 space-y-6 text-left">
+        <div className="lg:col-span-2 space-y-6 text-left lg:order-first">
 
           {/* Shipping form */}
           <div className="bg-brand-white p-6 sm:p-8 rounded-luxury border border-brand-black/5 space-y-5">
@@ -181,156 +215,125 @@ export const Checkout: React.FC = () => {
 
             {/* Name + Email */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
-                  Nombre Completo <span className="text-red-400">*</span>
-                </label>
+              <Field label="Nombre Completo" required error={errors.fullName}>
                 <input
                   value={fullName}
-                  onChange={e => { setFullName(e.target.value); setErrors(p => ({ ...p, fullName: '' })); }}
+                  onChange={e => { setFullName(e.target.value); clearErr('fullName'); }}
                   placeholder="Victoria Sinclair"
-                  className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/30 ${errors.fullName ? 'border-red-400' : 'border-brand-black/10 focus:border-brand-green-dark'}`}
+                  disabled={loading}
+                  className={fieldCls(!!errors.fullName)}
                 />
-                {errors.fullName && <p className="text-[10px] text-red-500 font-semibold">{errors.fullName}</p>}
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
-                  Correo Electrónico <span className="text-red-400">*</span>
-                </label>
+              </Field>
+              <Field label="Correo Electrónico" required error={errors.email}>
                 <input
                   type="email"
                   value={email}
-                  onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
+                  onChange={e => { setEmail(e.target.value); clearErr('email'); }}
                   placeholder="victoria@ejemplo.com"
-                  className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/30 ${errors.email ? 'border-red-400' : 'border-brand-black/10 focus:border-brand-green-dark'}`}
+                  disabled={loading}
+                  className={fieldCls(!!errors.email)}
                 />
-                {errors.email && <p className="text-[10px] text-red-500 font-semibold">{errors.email}</p>}
-              </div>
+              </Field>
             </div>
 
             {/* Phone */}
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
-                Teléfono <span className="text-red-400">*</span>
-              </label>
+            <Field label="Teléfono" required error={errors.phone}>
               <input
                 type="tel"
                 value={phone}
-                onChange={e => { setPhone(e.target.value); setErrors(p => ({ ...p, phone: '' })); }}
+                onChange={e => { setPhone(e.target.value); clearErr('phone'); }}
                 placeholder="+52 555-0199"
-                className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/30 ${errors.phone ? 'border-red-400' : 'border-brand-black/10 focus:border-brand-green-dark'}`}
+                disabled={loading}
+                className={fieldCls(!!errors.phone)}
               />
-              {errors.phone && <p className="text-[10px] text-red-500 font-semibold">{errors.phone}</p>}
-            </div>
+            </Field>
 
             {/* Address */}
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
-                Dirección de Envío <span className="text-red-400">*</span>
-              </label>
+            <Field label="Dirección de Envío" required error={errors.address}>
               <input
                 value={address}
-                onChange={e => { setAddress(e.target.value); setErrors(p => ({ ...p, address: '' })); }}
+                onChange={e => { setAddress(e.target.value); clearErr('address'); }}
                 placeholder="Calle, número, colonia, delegación"
-                className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/30 ${errors.address ? 'border-red-400' : 'border-brand-black/10 focus:border-brand-green-dark'}`}
+                disabled={loading}
+                className={fieldCls(!!errors.address)}
               />
-              {errors.address && <p className="text-[10px] text-red-500 font-semibold">{errors.address}</p>}
-            </div>
+            </Field>
 
             {/* City + State + Postal */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
-                  Ciudad <span className="text-red-400">*</span>
-                </label>
+              <Field label="Ciudad" required error={errors.city}>
                 <input
                   value={city}
-                  onChange={e => { setCity(e.target.value); setErrors(p => ({ ...p, city: '' })); }}
+                  onChange={e => { setCity(e.target.value); clearErr('city'); }}
                   placeholder="Ciudad de México"
-                  className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/30 ${errors.city ? 'border-red-400' : 'border-brand-black/10 focus:border-brand-green-dark'}`}
+                  disabled={loading}
+                  className={fieldCls(!!errors.city)}
                 />
-                {errors.city && <p className="text-[10px] text-red-500 font-semibold">{errors.city}</p>}
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
-                  Estado
-                </label>
+              </Field>
+              <Field label="Estado">
                 <input
-                  value={state}
-                  onChange={e => setState(e.target.value)}
+                  value={stateField}
+                  onChange={e => setStateField(e.target.value)}
                   placeholder="CDMX"
-                  className="w-full px-4 py-3 bg-brand-white border border-brand-black/10 focus:border-brand-green-dark rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/30"
+                  disabled={loading}
+                  className={fieldCls(false)}
                 />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
-                  Código Postal <span className="text-red-400">*</span>
-                </label>
+              </Field>
+              <Field label="Código Postal" required error={errors.postalCode}>
                 <input
                   value={postalCode}
-                  onChange={e => { setPostalCode(e.target.value); setErrors(p => ({ ...p, postalCode: '' })); }}
+                  onChange={e => { setPostalCode(e.target.value); clearErr('postalCode'); }}
                   placeholder="06600"
-                  className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/30 ${errors.postalCode ? 'border-red-400' : 'border-brand-black/10 focus:border-brand-green-dark'}`}
+                  disabled={loading}
+                  className={fieldCls(!!errors.postalCode)}
                 />
-                {errors.postalCode && <p className="text-[10px] text-red-500 font-semibold">{errors.postalCode}</p>}
-              </div>
+              </Field>
             </div>
 
             {/* References */}
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
-                Referencias / Instrucciones de entrega
-              </label>
+            <Field label="Referencias / Instrucciones de entrega">
               <textarea
                 rows={2}
                 value={references}
                 onChange={e => setReferences(e.target.value)}
                 placeholder="Código de acceso, edificio, referencias del domicilio..."
-                className="w-full px-4 py-3 bg-brand-white border border-brand-black/10 focus:border-brand-green-dark rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/30 resize-none"
+                disabled={loading}
+                className={`${fieldCls(false)} resize-none`}
               />
-            </div>
+            </Field>
           </div>
 
           {/* Payment method */}
-          <div className="bg-brand-white p-6 sm:p-8 rounded-luxury border border-brand-black/5 space-y-5">
+          <div className="bg-brand-white p-6 sm:p-8 rounded-luxury border border-brand-black/5 space-y-4">
             <h2 className="font-heading text-xl font-bold text-brand-black border-b border-brand-black/5 pb-3">
               Método de Pago
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {([
-                { id: 'delivery_cash'  as const, label: 'Efectivo',       icon: Truck,       desc: 'Pago al recibir' },
-                { id: 'bank_transfer'  as const, label: 'Transferencia',   icon: Landmark,    desc: 'SPEI / transferencia' },
-                { id: 'credit_card'    as const, label: 'Tarjeta',         icon: CreditCard,  desc: 'Crédito o débito' },
-              ]).map(({ id, label, icon: Icon, desc }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setPaymentMethod(id)}
-                  className={`p-4 rounded-luxury border text-left flex flex-col justify-between h-24 transition-all cursor-pointer ${
-                    paymentMethod === id
-                      ? 'border-brand-green-dark bg-brand-green-dark/5'
-                      : 'border-brand-black/5 hover:border-brand-black/15 bg-brand-white'
-                  }`}
-                >
-                  <Icon size={18} className={paymentMethod === id ? 'text-brand-green-dark' : 'text-brand-black/50'} />
-                  <div>
-                    <span className={`block text-xs font-bold ${paymentMethod === id ? 'text-brand-green-dark' : 'text-brand-black'}`}>
-                      {label}
-                    </span>
-                    <span className="block text-[10px] text-brand-black/40 mt-0.5">{desc}</span>
-                  </div>
-                </button>
-              ))}
+            {/* MercadoPago badge */}
+            <div className="flex items-center gap-4 p-4 border border-[#009EE3]/20 bg-[#009EE3]/5 rounded-luxury">
+              <div className="w-10 h-10 bg-[#009EE3] rounded-xl flex items-center justify-center shrink-0">
+                <CreditCard size={18} className="text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-brand-black">MercadoPago Checkout Pro</p>
+                <p className="text-[11px] text-brand-black/50 leading-relaxed font-medium">
+                  Tarjeta de crédito / débito, OXXO, transferencia y más. Procesado de forma segura.
+                </p>
+              </div>
+              <span className="ml-auto shrink-0 w-4 h-4 rounded-full border-2 border-[#009EE3] flex items-center justify-center">
+                <span className="w-2 h-2 rounded-full bg-[#009EE3]" />
+              </span>
             </div>
 
-            {/* Order-level error */}
+            <p className="text-[10px] text-brand-black/40 font-medium leading-relaxed">
+              🔒 Al confirmar, serás redirigido al portal seguro de MercadoPago para completar el pago.
+            </p>
+
+            {/* Inline error display */}
             {orderError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-4 py-3 rounded-luxury">
-                {orderError}
+              <div className="flex gap-3 items-start bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-4 py-3 rounded-luxury">
+                <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{orderError}</span>
               </div>
             )}
           </div>
@@ -338,8 +341,8 @@ export const Checkout: React.FC = () => {
         </div>
 
         {/* ── Right: order summary (1/3) ──────────────────────────────────────── */}
-        <div className="space-y-6">
-          <div className="bg-brand-white p-6 rounded-luxury border border-brand-black/5 shadow-sm text-left space-y-5 sticky top-4">
+        <div className="space-y-6 lg:order-last">
+          <div className="bg-brand-white p-5 sm:p-6 rounded-luxury border border-brand-black/5 shadow-sm text-left space-y-5 lg:sticky lg:top-4">
             <h2 className="font-heading text-lg font-bold text-brand-black border-b border-brand-black/5 pb-3">
               Resumen del Pedido
             </h2>
@@ -352,7 +355,7 @@ export const Checkout: React.FC = () => {
                   <div key={item.product.id} className="flex gap-3 text-xs items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <img
-                        src={item.product.imageUrl || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=80'}
+                        src={item.product.imageUrl || '/images/product-1.png'}
                         alt={item.product.name}
                         className="w-9 h-11 object-cover rounded-md border border-brand-black/5 shrink-0 bg-brand-gray-soft"
                       />
@@ -389,27 +392,27 @@ export const Checkout: React.FC = () => {
               </div>
             </div>
 
-            {/* Submit */}
+            {/* Submit button */}
             <button
               type="submit"
               disabled={loading || cart.length === 0}
-              className="w-full py-4 bg-brand-green-dark hover:bg-brand-black text-white text-sm font-bold rounded-luxury flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full py-4 bg-[#009EE3] hover:bg-[#007cc4] text-white text-sm font-bold rounded-luxury flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-2 shadow-md"
             >
               {loading ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Procesando…
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>{loadingStep || 'Procesando…'}</span>
                 </>
               ) : (
                 <>
-                  Confirmar Pedido
-                  <ArrowRight size={15} />
+                  <CreditCard size={15} />
+                  Pagar con MercadoPago
                 </>
               )}
             </button>
 
             <p className="text-[9px] text-brand-black/35 text-center font-medium">
-              🔒 Tu información está cifrada y segura.
+              🔒 Tu información está cifrada y protegida por MercadoPago.
             </p>
           </div>
         </div>
@@ -417,4 +420,30 @@ export const Checkout: React.FC = () => {
       </form>
     </div>
   );
+
+  // ── Small helpers (defined inside component to access state) ─────────────────
+  function clearErr(key: string) {
+    setErrors(prev => ({ ...prev, [key]: '' }));
+  }
 };
+
+// ─── Micro-components ─────────────────────────────────────────────────────────
+const fieldCls = (hasError: boolean) =>
+  `w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/30 disabled:opacity-60 ${
+    hasError ? 'border-red-400 focus:border-red-500' : 'border-brand-black/10 focus:border-brand-green-dark'
+  }`;
+
+const Field: React.FC<{
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+}> = ({ label, required, error, children }) => (
+  <div className="space-y-1">
+    <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
+      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+    </label>
+    {children}
+    {error && <p className="text-[10px] text-red-500 font-semibold">{error}</p>}
+  </div>
+);

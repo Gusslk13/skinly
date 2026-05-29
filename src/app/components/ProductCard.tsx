@@ -46,15 +46,15 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           alt={product.name}
           className="w-full h-full object-cover transition-transform ease-luxury duration-[1200ms] group-hover:scale-[1.03]"
         />
-        
-        {/* Quick Add Overlay */}
-        <div className="absolute inset-x-0 bottom-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform ease-luxury duration-500 bg-gradient-to-t from-brand-black/40 to-transparent">
+
+        {/* Quick Add Overlay — always visible on mobile, hover on desktop */}
+        <div className="absolute inset-x-0 bottom-0 p-3 translate-y-0 sm:translate-y-full sm:group-hover:translate-y-0 transition-transform ease-luxury duration-500 bg-gradient-to-t from-brand-black/40 to-transparent">
           <button
             onClick={(e) => {
               e.stopPropagation();
               addToCart(product, 1);
             }}
-            className="w-full py-2 bg-brand-white hover:bg-brand-green-dark hover:text-brand-white text-brand-black text-xs font-semibold rounded-luxury flex items-center justify-center gap-1.5 cursor-pointer shadow transition-all ease-luxury duration-300"
+            className="w-full py-2.5 bg-brand-white hover:bg-brand-green-dark hover:text-brand-white text-brand-black text-xs font-semibold rounded-luxury flex items-center justify-center gap-1.5 cursor-pointer shadow transition-all ease-luxury duration-300 active:scale-95"
           >
             <ShoppingBag size={13} />
             Agregar rápido

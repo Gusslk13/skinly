@@ -1,26 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/ProductCard';
 import { Button } from '../../components/UI';
 import { Award, Leaf, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
 
-const CATEGORY_LABELS: Record<string, string> = {
-  'Serums':       'Serums',
-  'Moisturizers': 'Hidratantes',
-  'Cleansers':    'Limpiadores',
-  'Toners':       'Tónicos',
-  'Anti-Aging':   'Antienvejecimiento',
-};
-
 export const Home: React.FC = () => {
-  const { products, setView, featuredBanner, currentUser } = useApp();
+  const { products, categories, setView, featuredBanner, currentUser } = useApp();
   const [activeCategory, setActiveCategory] = useState('Todos');
-
-  // Derive categories from actual products — same values as in the store
-  const availableCategories = useMemo(
-    () => Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort(),
-    [products]
-  );
 
   const filteredProducts = products.filter(prod => {
     return activeCategory === 'Todos' || prod.category === activeCategory;
@@ -33,68 +19,70 @@ export const Home: React.FC = () => {
     <div className="space-y-10 pb-20">
       
       {/* BANNER HERO DE LUJO */}
-      <section className="relative min-h-[520px] md:min-h-[580px] bg-gradient-to-br from-[#0c0d0c] via-[#0e1611] to-[#0a0f0c] overflow-hidden rounded-b-[2.5rem] flex items-center p-6 sm:p-12 md:p-16 border-b border-brand-white/5">
-        
+      <section className="relative min-h-[380px] sm:min-h-[520px] md:min-h-[580px] bg-gradient-to-br from-[#0c0d0c] via-[#0e1611] to-[#0a0f0c] overflow-hidden rounded-b-[1.5rem] sm:rounded-b-[2.5rem] flex items-center px-5 py-10 sm:p-12 md:p-16 border-b border-brand-white/5">
+
         {/* Luces de estudio de fondo */}
         <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full bg-brand-green-dark/15 blur-3xl opacity-60 pointer-events-none animate-pulse" />
         <div className="absolute -bottom-10 -left-10 w-80 h-80 rounded-full bg-brand-green-light/5 blur-3xl opacity-40 pointer-events-none" />
-        
+
         {/* Composición en Grid Editorial */}
-        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-20">
-          
+        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center relative z-20">
+
           {/* Columna Izquierda: Información de Campaña */}
-          <div className="lg:col-span-7 text-left space-y-6 flex flex-col justify-center">
-            <div className="animate-slide-up-subtle">
+          <div className="lg:col-span-7 text-center sm:text-left space-y-4 sm:space-y-6 flex flex-col justify-center">
+            <div className="animate-slide-up-subtle flex justify-center sm:justify-start">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-white/5 backdrop-blur-md rounded-full text-[10px] font-bold tracking-[0.18em] uppercase text-brand-green-light border border-brand-white/10">
                 <Sparkles size={10} className="text-brand-green-light" />
                 Excelencia Botánica Skinly
               </span>
             </div>
-            
-            <h1 className="font-heading text-4xl sm:text-5xl md:text-6.5xl font-extrabold leading-[1.08] tracking-wide text-brand-white max-w-xl animate-scale-up-smooth">
+
+            <h1 className="font-heading text-3xl sm:text-5xl md:text-6xl font-extrabold leading-[1.08] tracking-wide text-brand-white animate-scale-up-smooth">
               {featuredBanner.title}
             </h1>
-            
-            <p className="text-sm md:text-base text-brand-white/70 leading-relaxed font-medium max-w-lg animate-slide-up-subtle">
+
+            <p className="text-sm md:text-base text-brand-white/70 leading-relaxed font-medium max-w-lg mx-auto sm:mx-0 animate-slide-up-subtle">
               {featuredBanner.subtitle}
             </p>
-            
-            <div className="pt-2 flex flex-wrap gap-4 items-center animate-slide-up-subtle">
-              <Button 
-                variant="glass" 
-                size="lg" 
+
+            <div className="pt-1 flex flex-wrap gap-4 items-center justify-center sm:justify-start animate-slide-up-subtle">
+              <Button
+                variant="glass"
+                size="lg"
                 onClick={() => setView('categories')}
-                className="font-bold border border-brand-white/10 hover:border-brand-green-light/30 hover:bg-brand-white/90 transition-all shadow-md active:scale-97 text-brand-black"
+                className="font-bold border border-brand-white/10 hover:border-brand-green-light/30 hover:bg-brand-white/90 transition-all shadow-md active:scale-97 text-brand-black w-full sm:w-auto"
               >
                 {featuredBanner.ctaText}
               </Button>
             </div>
           </div>
-          
-          {/* Columna Derecha: Presentación Cinematográfica del Producto */}
-          <div className="lg:col-span-5 flex items-center justify-center lg:justify-end relative">
+
+          {/* Columna Derecha: Imagen del producto — oculta en móvil */}
+          <div className="hidden sm:flex lg:col-span-5 items-center justify-center lg:justify-end relative">
             {/* Sombra de suelo flotante */}
-            <div className="absolute -bottom-6 w-4/5 h-6 bg-brand-black/60 rounded-full blur-xl opacity-50 transform scale-x-90 animate-pulse" />
-            
-            {/* Contenedor de la botella flotante de campaña */}
-            <div className="relative w-64 sm:w-72 aspect-[3/4] rounded-[1.75rem] overflow-hidden border border-brand-white/10 shadow-2xl shadow-brand-green-dark/15 animate-parallax-float bg-brand-black/20 backdrop-blur-md group">
-              {/* Reflejos de luz premium */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-brand-black/30 via-transparent to-brand-white/10 z-10 pointer-events-none group-hover:opacity-80 transition-opacity duration-700" />
-              <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-brand-white/5 rounded-full blur-2xl transform rotate-45 pointer-events-none" />
-              
-              <img 
-                src={featuredBanner.imageUrl} 
-                alt="Skincare de Lujo"
-                className="w-full h-full object-cover opacity-90 transition-transform duration-[1500ms] ease-luxury group-hover:scale-105"
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-brand-black/50 rounded-full blur-2xl opacity-60 pointer-events-none" />
+
+            {/* Marco de imagen principal */}
+            <div className="relative w-60 sm:w-72 lg:w-80 xl:w-88 aspect-[3/4] rounded-[2rem] overflow-hidden border border-brand-white/10 shadow-[0_32px_80px_rgba(0,0,0,0.5)] group">
+
+              {/* Overlay de luz sutil encima */}
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-black/50 via-transparent to-brand-white/5 z-10 pointer-events-none" />
+
+              <img
+                src="/images/product-hero.png"
+                alt="Skincare de Lujo Skinly"
+                className="w-full h-full object-cover object-center transition-transform duration-[1800ms] ease-in-out group-hover:scale-[1.04]"
               />
-              
-              {/* Etiqueta flotante premium */}
-              <div className="absolute bottom-4 left-4 right-4 z-20 bg-brand-black/40 backdrop-blur-md px-4 py-3 rounded-luxury border border-brand-white/10 flex items-center justify-between">
+
+              {/* Badge flotante inferior */}
+              <div className="absolute bottom-4 left-4 right-4 z-20 bg-brand-black/50 backdrop-blur-md px-3 py-2.5 rounded-xl border border-brand-white/10 flex items-center justify-between">
                 <div>
                   <span className="block text-[8px] uppercase tracking-widest text-brand-green-light font-black">Fórmula Activa</span>
                   <span className="text-xs font-bold text-brand-white">Edición Limitada</span>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 bg-brand-white/15 text-brand-white rounded-md font-bold uppercase border border-brand-white/10">100% Orgánico</span>
+                <span className="text-[9px] px-2 py-0.5 bg-brand-green-dark/60 text-brand-white rounded-md font-bold uppercase border border-brand-green-light/20 tracking-wide">
+                  100% Orgánico
+                </span>
               </div>
             </div>
           </div>
@@ -102,7 +90,7 @@ export const Home: React.FC = () => {
         </div>
 
         {/* Indicadores inferiores */}
-        <div className="absolute bottom-6 left-6 md:left-auto md:right-16 z-20 hidden md:flex items-center gap-5 text-brand-white/40 text-[9px] uppercase font-bold tracking-widest">
+        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-16 z-20 hidden sm:flex items-center gap-4 text-brand-white/40 text-[9px] uppercase font-bold tracking-widest whitespace-nowrap">
           <span>Sin Crueldad Animal</span>
           <span className="w-1 h-1 rounded-full bg-brand-green-light" />
           <span>Sin Toxinas</span>
@@ -134,17 +122,17 @@ export const Home: React.FC = () => {
             >
               Todos
             </button>
-            {availableCategories.map((cat) => (
+            {categories.map((cat) => (
               <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.name)}
                 className={`px-4 py-2 text-xs font-bold rounded-full tracking-wide transition-all ease-luxury duration-300 cursor-pointer whitespace-nowrap border ${
-                  activeCategory === cat
+                  activeCategory === cat.name
                     ? 'bg-brand-black text-brand-white border-brand-black shadow-md'
                     : 'bg-brand-white text-brand-black/60 border-brand-black/5 hover:border-brand-black/10'
                 }`}
               >
-                {CATEGORY_LABELS[cat] ?? cat}
+                {cat.name}
               </button>
             ))}
           </div>
@@ -238,15 +226,17 @@ export const Home: React.FC = () => {
               ¿Tienes un cupón de referido?
             </h4>
             <p className="text-xs text-brand-black/50 font-medium">
-              Ingresa un cupón activo de embajador en tu Carrito para desbloquear **10% DE DESCUENTO** en tu compra. (Prueba **LUPITA10**)
+              Ingresa un cupón activo de embajador en tu Carrito para desbloquear{' '}
+              <strong className="text-brand-black">10% DE DESCUENTO</strong> en tu compra.{' '}
+              (Prueba <strong className="text-brand-green-dark font-mono">LUPITA10</strong>)
             </p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => setView('cart')}
+          <Button
+            variant="outline"
+            onClick={() => setView('affiliate-program')}
             className="hover:bg-brand-black hover:text-brand-white transition-colors"
           >
-            Aplicar Código
+            Ver Programa
           </Button>
         </div>
       </section>

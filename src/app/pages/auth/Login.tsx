@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Button, Input } from '../../components/UI';
-import { Leaf, Eye, EyeOff, ShieldAlert, Check } from 'lucide-react';
+import { Eye, EyeOff, ShieldAlert, Check } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const { login, setView } = useApp();
@@ -76,12 +76,13 @@ export const Login: React.FC = () => {
         
         {/* Encabezado de marca y disparador secreto */}
         <div className="flex flex-col items-center text-center mb-8 select-none">
-          <div className="w-12 h-12 rounded-full bg-brand-green-dark/10 flex items-center justify-center text-brand-green-dark mb-4">
-            <Leaf size={22} className="stroke-[1.5]" />
-          </div>
-          
+          <img
+            src="/images/logo.png"
+            alt="Skinly"
+            className="w-14 h-14 object-contain mb-3"
+          />
           {/* Doble clic secreto para presets de desarrollador */}
-          <h2 
+          <h2
             onDoubleClick={() => setShowHiddenDevTray(!showHiddenDevTray)}
             className="font-heading text-3xl font-extrabold tracking-[0.15em] text-brand-black cursor-default active:scale-98 transition-all hover:text-brand-green-dark"
             title="Doble clic para acceder al panel de desarrollador"

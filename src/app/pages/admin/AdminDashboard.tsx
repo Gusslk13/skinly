@@ -218,13 +218,8 @@ export const AdminDashboard: React.FC = () => {
                 {orders.map((o) => (
                   <div key={o.id} className="flex justify-between items-start text-xs border-b border-brand-black/5 pb-3 last:border-0 last:pb-0">
                     <div className="space-y-0.5">
-                      <span className="font-bold text-brand-black block truncate max-w-[120px]">{o.customerName}</span>
-                      <span className="text-[10px] text-brand-black/40 block font-mono">{o.id.toUpperCase()}</span>
-                      {o.couponCode && (
-                        <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-wider block bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded w-fit mt-0.5">
-                          Cupón: {o.couponCode}
-                        </span>
-                      )}
+                      <span className="font-bold text-brand-black block truncate max-w-[120px]">{o.shippingAddress?.name || '—'}</span>
+                      <span className="text-[10px] text-brand-black/40 block font-mono">{o.id.slice(0, 8).toUpperCase()}</span>
                     </div>
 
                     <div className="text-right space-y-0.5">
@@ -271,7 +266,7 @@ export const AdminDashboard: React.FC = () => {
                     <div className="flex gap-3 items-center min-w-0">
                       <div className="relative shrink-0">
                         <img
-                          src={p.imageUrl || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=100'}
+                          src={p.imageUrl || '/images/product-1.png'}
                           alt={p.name}
                           className="w-12 h-12 object-cover rounded-luxury border border-brand-black/5 bg-brand-gray-soft"
                         />
@@ -339,7 +334,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             {/* ── Panel derecho: Agregar o Editar (1/3) ── */}
-            <div className="bg-brand-white p-6 rounded-luxury border border-brand-black/5 shadow-sm space-y-6 text-left h-fit sticky top-4">
+            <div className="bg-brand-white p-5 sm:p-6 rounded-luxury border border-brand-black/5 shadow-sm space-y-6 text-left h-fit lg:sticky lg:top-4">
               {editingProduct ? (
                 <>
                   <div className="flex items-center justify-between pb-2 border-b border-brand-black/5">
@@ -407,7 +402,7 @@ export const AdminDashboard: React.FC = () => {
                   {orders.map((o) => {
                     // Resolve email from registeredUsers using customerId
                     const userRecord = registeredUsers.find(u => u.id === o.customerId);
-                    const email = o.customerEmail || userRecord?.email || '—';
+                    const email = o.shippingAddress?.email || userRecord?.email || '—';
                     const shortId = o.id.slice(0, 8).toUpperCase();
 
                     const statusConfig: Record<string, { label: string; cls: string }> = {
@@ -419,59 +414,75 @@ export const AdminDashboard: React.FC = () => {
                     const sc = statusConfig[o.status] ?? statusConfig.pending;
 
                     return (
-                      <div key={o.id} className="px-5 py-4 grid grid-cols-1 md:grid-cols-[1fr_1.4fr_0.8fr_0.7fr_1.1fr] gap-3 md:gap-4 text-xs items-center">
-
-                        {/* ID + fecha */}
-                        <div className="space-y-0.5">
-                          <span className="font-mono font-black text-brand-green-dark text-[11px] block">#{shortId}</span>
-                          <span className="text-[10px] text-brand-black/40 font-semibold block">
-                            {new Date(o.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </span>
+                      <div key={o.id} className="px-4 sm:px-5 py-4 text-xs">
+                        {/* Mobile card layout */}
+                        <div className="flex items-start justify-between gap-3 md:hidden">
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-black text-brand-green-dark text-[11px]">#{shortId}</span>
+                              <span className={`px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide rounded-full border ${sc.cls}`}>
+                                {sc.label}
+                              </span>
+                            </div>
+                            <span className="font-bold text-brand-black block truncate">{o.shippingAddress?.name || '—'}</span>
+                            <span className="text-[10px] text-brand-black/40 block truncate">{email}</span>
+                            <div className="flex items-center gap-3 flex-wrap pt-0.5">
+                              <span className="font-black text-brand-black">${o.total.toFixed(2)}</span>
+                              <span className="text-brand-black/40">{o.items.reduce((s, i) => s + i.quantity, 0)} uds.</span>
+                              <span className="text-brand-black/30">{o.shippingAddress?.city || '—'}</span>
+                            </div>
+                          </div>
+                          <div className="shrink-0">
+                            <select
+                              value={o.status}
+                              onChange={async (e) => { await updateOrderStatus(o.id, e.target.value as any); }}
+                              className="text-[10px] font-semibold border border-brand-black/10 rounded-luxury px-2 py-2 bg-brand-white text-brand-black/70 outline-none focus:border-brand-green-dark cursor-pointer"
+                            >
+                              <option value="pending">Pendiente</option>
+                              <option value="shipped">Enviado</option>
+                              <option value="delivered">Entregado</option>
+                              <option value="refunded">Reembolsado</option>
+                            </select>
+                          </div>
                         </div>
 
-                        {/* Cliente */}
-                        <div className="space-y-0.5 min-w-0">
-                          <span className="font-bold text-brand-black block truncate">{o.customerName}</span>
-                          <span className="text-[10px] text-brand-black/40 block truncate">{email}</span>
-                          <span className="text-[10px] text-brand-black/30 block truncate">{o.city}</span>
-                        </div>
-
-                        {/* Total */}
-                        <div className="space-y-0.5">
-                          <span className="font-black text-brand-black text-sm block">${o.total.toFixed(2)}</span>
-                          {o.couponCode && (
-                            <span className="text-[9px] font-bold text-indigo-500 block">
-                              -{o.couponCode}
+                        {/* Desktop table row */}
+                        <div className="hidden md:grid grid-cols-[1fr_1.4fr_0.8fr_0.7fr_1.1fr] gap-4 items-center">
+                          <div className="space-y-0.5">
+                            <span className="font-mono font-black text-brand-green-dark text-[11px] block">#{shortId}</span>
+                            <span className="text-[10px] text-brand-black/40 font-semibold block">
+                              {new Date(o.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </span>
-                          )}
+                          </div>
+                          <div className="space-y-0.5 min-w-0">
+                            <span className="font-bold text-brand-black block truncate">{o.shippingAddress?.name || '—'}</span>
+                            <span className="text-[10px] text-brand-black/40 block truncate">{email}</span>
+                            <span className="text-[10px] text-brand-black/30 block truncate">{o.shippingAddress?.city || '—'}</span>
+                          </div>
+                          <div>
+                            <span className="font-black text-brand-black text-sm block">${o.total.toFixed(2)}</span>
+                          </div>
+                          <div>
+                            <span className="text-brand-black/60 font-semibold">
+                              {o.items.reduce((s, i) => s + i.quantity, 0)} uds.
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-1.5 items-end">
+                            <span className={`px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide rounded-full border ${sc.cls}`}>
+                              {sc.label}
+                            </span>
+                            <select
+                              value={o.status}
+                              onChange={async (e) => { await updateOrderStatus(o.id, e.target.value as any); }}
+                              className="text-[10px] font-semibold border border-brand-black/10 rounded-luxury px-2 py-1 bg-brand-white text-brand-black/70 outline-none focus:border-brand-green-dark cursor-pointer transition-colors"
+                            >
+                              <option value="pending">Pendiente</option>
+                              <option value="shipped">Enviado</option>
+                              <option value="delivered">Entregado</option>
+                              <option value="refunded">Reembolsado</option>
+                            </select>
+                          </div>
                         </div>
-
-                        {/* Items count */}
-                        <div>
-                          <span className="text-brand-black/60 font-semibold">
-                            {o.items.reduce((s, i) => s + i.quantity, 0)} uds.
-                          </span>
-                        </div>
-
-                        {/* Estado */}
-                        <div className="flex flex-col gap-1.5 items-start md:items-end">
-                          <span className={`px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide rounded-full border ${sc.cls}`}>
-                            {sc.label}
-                          </span>
-                          <select
-                            value={o.status}
-                            onChange={async (e) => {
-                              await updateOrderStatus(o.id, e.target.value as any);
-                            }}
-                            className="text-[10px] font-semibold border border-brand-black/10 rounded-luxury px-2 py-1 bg-brand-white text-brand-black/70 outline-none focus:border-brand-green-dark cursor-pointer transition-colors"
-                          >
-                            <option value="pending">Pendiente</option>
-                            <option value="shipped">Enviado</option>
-                            <option value="delivered">Entregado</option>
-                            <option value="refunded">Reembolsado</option>
-                          </select>
-                        </div>
-
                       </div>
                     );
                   })}
@@ -730,25 +741,195 @@ const DBSetupBanner: React.FC = () => {
 };
 
 // ============================================================================
+// COMPONENTE COMPARTIDO — UPLOADER MULTI-IMAGEN (hasta 6)
+// ============================================================================
+const MAX_IMAGES = 6;
+const BUCKET = 'product-images';
+
+interface ImageEntry {
+  preview: string;   // blob URL (file nuevo) o URL remota (existente)
+  file: File | null; // null = imagen ya guardada en Storage
+  isNew: boolean;
+}
+
+interface MultiImageUploaderProps {
+  entries: ImageEntry[];
+  onChange: (entries: ImageEntry[]) => void;
+  uploadError: string;
+  onUploadError: (msg: string) => void;
+  compact?: boolean; // tamaño reducido para el wizard de edición
+}
+
+const MultiImageUploader: React.FC<MultiImageUploaderProps> = ({
+  entries, onChange, uploadError, onUploadError, compact = false
+}) => {
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const addFiles = (files: FileList | null) => {
+    if (!files) return;
+    onUploadError('');
+    const toAdd = Array.from(files).slice(0, MAX_IMAGES - entries.length);
+    const newEntries: ImageEntry[] = [];
+
+    for (const file of toAdd) {
+      if (!file.type.startsWith('image/')) { onUploadError('Solo imágenes (PNG, JPG, WEBP)'); continue; }
+      if (file.size > 5 * 1024 * 1024) { onUploadError('Máx. 5 MB por imagen'); continue; }
+      newEntries.push({ preview: URL.createObjectURL(file), file, isNew: true });
+    }
+
+    if (newEntries.length > 0) onChange([...entries, ...newEntries]);
+  };
+
+  const removeEntry = (idx: number) => {
+    const entry = entries[idx];
+    if (entry.isNew) URL.revokeObjectURL(entry.preview);
+    onChange(entries.filter((_, i) => i !== idx));
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addFiles(e.target.files);
+    e.target.value = '';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    addFiles(e.dataTransfer.files);
+  };
+
+  const remaining = MAX_IMAGES - entries.length;
+  const showDropZone = entries.length < MAX_IMAGES;
+
+  return (
+    <div className="space-y-2.5">
+      {/* Preview grid */}
+      {entries.length > 0 && (
+        <div className={`grid gap-2 ${compact ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-3'}`}>
+          {entries.map((entry, idx) => (
+            <div key={idx} className="relative group aspect-square rounded-luxury overflow-hidden border border-brand-black/10 bg-brand-gray-soft">
+              <img src={entry.preview} alt={`img-${idx}`} className="w-full h-full object-cover" />
+              {/* Primer badge */}
+              {idx === 0 && (
+                <span className="absolute top-1 left-1 text-[8px] font-extrabold bg-brand-green-dark text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                  Principal
+                </span>
+              )}
+              {/* New badge */}
+              {entry.isNew && idx > 0 && (
+                <span className="absolute top-1 left-1 text-[8px] font-bold bg-brand-black/60 text-white px-1 py-0.5 rounded-full">
+                  Nueva
+                </span>
+              )}
+              {/* Remove */}
+              <button
+                type="button"
+                onClick={() => removeEntry(idx)}
+                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-brand-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all cursor-pointer shadow"
+              >
+                <X size={10} />
+              </button>
+              {/* Number badge */}
+              <span className="absolute bottom-1 right-1 text-[8px] font-bold bg-brand-black/50 text-white w-4 h-4 rounded-full flex items-center justify-center">
+                {idx + 1}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Drop zone — visible mientras queden slots */}
+      {showDropZone && (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`w-full flex flex-col items-center gap-2 rounded-luxury border-2 border-dashed transition-all cursor-pointer select-none ${
+            compact ? 'py-4' : 'py-7'
+          } ${
+            dragOver
+              ? 'border-brand-green-dark bg-brand-green-dark/5'
+              : 'border-brand-black/15 hover:border-brand-green-dark/40 hover:bg-brand-gray-soft/50'
+          }`}
+        >
+          <div className={`rounded-full flex items-center justify-center transition-colors ${compact ? 'w-8 h-8' : 'w-11 h-11'} ${dragOver ? 'bg-brand-green-dark/15' : 'bg-brand-black/5'}`}>
+            <ImagePlus size={compact ? 15 : 18} className={dragOver ? 'text-brand-green-dark' : 'text-brand-black/40'} />
+          </div>
+          <div className="text-center px-2">
+            <span className={`block font-bold text-brand-black/60 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+              {dragOver ? 'Suelta aquí' : entries.length === 0 ? 'Arrastra imágenes o haz clic' : `Agregar más (${remaining} restante${remaining !== 1 ? 's' : ''})`}
+            </span>
+            <span className="block text-[9px] text-brand-black/30 font-medium mt-0.5">
+              Hasta {MAX_IMAGES} imágenes · PNG · JPG · WEBP · 5 MB c/u
+            </span>
+          </div>
+        </div>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        multiple
+        className="hidden"
+        onChange={handleFileInput}
+      />
+
+      {uploadError && <p className="text-[10px] text-red-500 font-semibold">{uploadError}</p>}
+      {entries.length === 0 && (
+        <p className="text-[10px] text-brand-black/30 font-medium">
+          Opcional — el producto se guardará sin imágenes si no seleccionas ninguna.
+        </p>
+      )}
+      {entries.length === MAX_IMAGES && (
+        <p className="text-[10px] text-brand-green-dark font-semibold">
+          Máximo de {MAX_IMAGES} imágenes alcanzado.
+        </p>
+      )}
+    </div>
+  );
+};
+
+// Sube todos los archivos nuevos a Storage, retorna array de URLs finales
+async function uploadImageEntries(entries: ImageEntry[]): Promise<string[]> {
+  const urls: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isNew || !entry.file) {
+      // imagen existente — usar la URL remota directamente
+      urls.push(entry.preview);
+    } else {
+      const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}-${entry.file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, entry.file, { cacheControl: '3600', upsert: false, contentType: entry.file.type });
+      if (error) throw new Error(error.message);
+      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
+      urls.push(publicUrl);
+    }
+  }
+  return urls;
+}
+
+// ============================================================================
 // COMPONENTE AUXILIAR - FORMULARIO PARA AGREGAR PRODUCTOS
 // ============================================================================
 type FormErrors = Partial<Record<'name' | 'price' | 'stock' | 'ingredients' | 'image', string>>;
 
-const BUCKET = 'product-images';
-
 const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) => {
+  const { categories } = useApp();
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
+  const [benefits, setBenefits] = useState('');
+  const [howToUse, setHowToUse] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('30');
-  const [category, setCategory] = useState('Serums');
+  const [categoryId, setCategoryId] = useState('');
   const [ingredients, setIngredients] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
-  const [uploadError, setUploadError] = useState<string>('');
+  const [imageEntries, setImageEntries] = useState<ImageEntry[]>([]);
+  const [uploadError, setUploadError] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [status, setStatus] = useState<'idle' | 'uploading' | 'submitting' | 'success'>('idle');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validate = (): boolean => {
     const errs: FormErrors = {};
@@ -760,89 +941,49 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
     return Object.keys(errs).length === 0;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Solo se permiten imágenes (PNG, JPG, WEBP)');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('El archivo supera el límite de 5 MB');
-      return;
-    }
-    setUploadError('');
-    setImageFile(file);
-    // Revoke previous blob URL to avoid memory leaks
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(URL.createObjectURL(file));
-    // Reset input so the same file can be re-selected if needed
-    e.target.value = '';
-  };
-
-  const clearImage = () => {
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImageFile(null);
-    setImagePreview('');
-    setUploadError('');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setUploadError('');
-    let imageUrl = '';
     let imageUrls: string[] = [];
 
-    // ── Step 1: Upload image if selected ───────────────────────
-    if (imageFile) {
+    if (imageEntries.length > 0) {
       setStatus('uploading');
-      const ext = imageFile.name.split('.').pop() || 'jpg';
-      const path = `products/${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-      const { data, error: uploadErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, imageFile, { cacheControl: '3600', upsert: false, contentType: imageFile.type });
-
-      if (uploadErr) {
-        setUploadError(`Error al subir imagen: ${uploadErr.message}`);
+      try {
+        imageUrls = await uploadImageEntries(imageEntries);
+      } catch (err: any) {
+        setUploadError(`Error al subir imágenes: ${err.message}`);
         setStatus('idle');
         return;
       }
-
-      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
-      imageUrl = publicUrl;
-      imageUrls = [publicUrl];
     }
 
-    // ── Step 2: Save product ────────────────────────────────────
     setStatus('submitting');
-    const cleanIngredients = ingredients
-      .split(',')
-      .map(i => i.trim())
-      .filter(i => i.length > 0);
+    const cleanIngredients = ingredients.split(',').map(i => i.trim()).filter(Boolean);
+    // Resolve id → name so AppContext.getOrCreateCategoryId receives the right value
+    const categoryName = categories.find(c => c.id === categoryId)?.name ?? categoryId;
 
     await onAdd({
       name: name.trim(),
-      description: desc.trim() || `${name.trim()} es una formulación orgánica activa verificada para la salud dérmica.`,
+      description: desc.trim() || `${name.trim()} es una formulación orgánica activa verificada.`,
       ingredients: cleanIngredients,
-      category,
+      benefits: benefits.trim(),
+      howToUse: howToUse.trim(),
+      category: categoryName,
       price: Number(price),
       stock: Number(stock),
-      imageUrl,          // empty string is fine — column allows null
-      images: imageUrls, // empty array is fine
+      imageUrl: imageUrls[0] ?? '',
+      images: imageUrls,
       isVerified: false,
       isFeatured: false
     });
 
-    // ── Step 3: Reset form ──────────────────────────────────────
-    setName('');
-    setDesc('');
-    setPrice('');
-    setIngredients('');
-    setStock('30');
-    setCategory('Serums');
-    clearImage();
+    setName(''); setDesc(''); setBenefits(''); setHowToUse('');
+    setPrice(''); setIngredients(''); setStock('30'); setCategoryId('');
+    // Revoke blob URLs
+    imageEntries.forEach(e => { if (e.isNew) URL.revokeObjectURL(e.preview); });
+    setImageEntries([]);
     setErrors({});
     setStatus('success');
     setTimeout(() => setStatus('idle'), 3500);
@@ -853,7 +994,6 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
 
-      {/* Success banner */}
       {status === 'success' && (
         <div className="flex items-center gap-2 bg-brand-green-dark/10 border border-brand-green-dark/20 text-brand-green-dark text-[11px] font-bold px-3 py-2.5 rounded-luxury">
           <CheckCircle2 size={14} />
@@ -871,7 +1011,7 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
           onChange={(e) => { setName(e.target.value); setErrors(p => ({ ...p, name: undefined })); }}
           placeholder="Crème Resurfacing de Bakuchiol"
           className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/35 ${
-            errors.name ? 'border-red-400 focus:border-red-400' : 'border-brand-black/10 focus:border-brand-green-dark'
+            errors.name ? 'border-red-400' : 'border-brand-black/10 focus:border-brand-green-dark'
           }`}
         />
         {errors.name && <p className="text-[10px] text-red-500 font-semibold mt-1">{errors.name}</p>}
@@ -883,9 +1023,7 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
           <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60 mb-1.5">
             Precio ($) <span className="text-red-400">*</span>
           </label>
-          <input
-            type="number" min="1" step="0.5"
-            value={price}
+          <input type="number" min="1" step="0.5" value={price}
             onChange={(e) => { setPrice(e.target.value); setErrors(p => ({ ...p, price: undefined })); }}
             placeholder="62.00"
             className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/35 ${
@@ -894,14 +1032,11 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
           />
           {errors.price && <p className="text-[10px] text-red-500 font-semibold mt-1">{errors.price}</p>}
         </div>
-
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60 mb-1.5">
             Stock Inicial <span className="text-red-400">*</span>
           </label>
-          <input
-            type="number" min="1"
-            value={stock}
+          <input type="number" min="1" value={stock}
             onChange={(e) => { setStock(e.target.value); setErrors(p => ({ ...p, stock: undefined })); }}
             placeholder="30"
             className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/35 ${
@@ -912,19 +1047,26 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
         </div>
       </div>
 
-      {/* Category */}
-      <Select
-        label="Categoría de Skincare"
-        options={[
-          { value: 'Serums', label: 'Serums' },
-          { value: 'Moisturizers', label: 'Hidratantes' },
-          { value: 'Cleansers', label: 'Limpiadores' },
-          { value: 'Toners', label: 'Tónicos' },
-          { value: 'Anti-Aging', label: 'Antienvejecimiento' }
-        ]}
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-      />
+      {/* Category — cargado dinámicamente desde Supabase */}
+      <div className="w-full">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60 mb-1.5">
+          Categoría de Skincare
+        </label>
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          className="w-full px-4 py-3 bg-brand-white border border-brand-black/10 focus:border-brand-green-dark rounded-luxury text-sm outline-none transition-all cursor-pointer"
+        >
+          <option value="" disabled>— Selecciona una categoría —</option>
+          {categories.length === 0 ? (
+            <option disabled>Cargando categorías…</option>
+          ) : (
+            categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))
+          )}
+        </select>
+      </div>
 
       {/* Ingredients */}
       <div className="w-full">
@@ -932,11 +1074,9 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
           Ingredientes Activos <span className="text-red-400">*</span>
           <span className="normal-case font-normal ml-1 text-brand-black/35">(separados por coma)</span>
         </label>
-        <textarea
-          rows={3}
-          value={ingredients}
+        <textarea rows={2} value={ingredients}
           onChange={(e) => { setIngredients(e.target.value); setErrors(p => ({ ...p, ingredients: undefined })); }}
-          placeholder="Bakuchiol, Manteca de Karité, Coenzima Q10, Escualano..."
+          placeholder="Bakuchiol, Manteca de Karité, Coenzima Q10..."
           className={`w-full px-4 py-3 bg-brand-white border rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/35 resize-none ${
             errors.ingredients ? 'border-red-400' : 'border-brand-black/10 focus:border-brand-green-dark'
           }`}
@@ -945,80 +1085,49 @@ const ProductAddWizard: React.FC<{ onAdd: (prod: any) => void }> = ({ onAdd }) =
       </div>
 
       {/* Description */}
-      <TextArea
-        label="Descripción del Producto"
-        value={desc}
-        onChange={(e) => setDesc(e.target.value)}
-        placeholder="Detalles de los beneficios de rejuvenecimiento dérmico..."
-        rows={3}
-      />
+      <TextArea label="Descripción" value={desc} onChange={(e) => setDesc(e.target.value)}
+        placeholder="Describe brevemente el producto..." rows={2} />
 
-      {/* ── Image picker ───────────────────────────────────────── */}
-      <div className="border-t border-brand-black/5 pt-3 space-y-2">
-        <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
-          Imagen del Producto
+      {/* Benefits */}
+      <div className="w-full">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60 mb-1.5">
+          Beneficios <span className="normal-case font-normal text-brand-black/35">(un beneficio por línea)</span>
         </label>
+        <textarea rows={2} value={benefits} onChange={(e) => setBenefits(e.target.value)}
+          placeholder={"Hidratación profunda 24 horas\nReduce líneas de expresión"}
+          className="w-full px-4 py-3 bg-brand-white border border-brand-black/10 focus:border-brand-green-dark rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/35 resize-none" />
+      </div>
 
-        {imagePreview ? (
-          /* Preview + remove */
-          <div className="relative w-full aspect-video rounded-luxury overflow-hidden border border-brand-black/10 bg-brand-gray-soft">
-            <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
-            <button
-              type="button"
-              onClick={clearImage}
-              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-brand-black/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer shadow"
-            >
-              <X size={13} />
-            </button>
-            <div className="absolute bottom-2 left-2 bg-brand-black/60 text-white text-[9px] font-bold px-2 py-0.5 rounded-full truncate max-w-[80%]">
-              {imageFile?.name}
-            </div>
-          </div>
-        ) : (
-          /* Drop zone / click area */
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full flex flex-col items-center gap-2 py-6 border-2 border-dashed border-brand-black/12 rounded-luxury hover:border-brand-green-dark/50 hover:bg-brand-green-dark/3 transition-all cursor-pointer"
-          >
-            <div className="w-10 h-10 rounded-full bg-brand-black/5 flex items-center justify-center">
-              <ImagePlus size={18} className="text-brand-black/40" />
-            </div>
-            <span className="text-xs font-bold text-brand-black/50">Haz clic para seleccionar imagen</span>
-            <span className="text-[9px] text-brand-black/30 font-medium">PNG · JPG · WEBP · Máx. 5 MB</span>
-          </button>
-        )}
+      {/* How to use */}
+      <div className="w-full">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60 mb-1.5">
+          Modo de Aplicación <span className="normal-case font-normal text-brand-black/35">(un paso por línea)</span>
+        </label>
+        <textarea rows={2} value={howToUse} onChange={(e) => setHowToUse(e.target.value)}
+          placeholder={"Limpia el rostro con agua tibia\nAplica 2-3 gotas en piel húmeda"}
+          className="w-full px-4 py-3 bg-brand-white border border-brand-black/10 focus:border-brand-green-dark rounded-luxury text-sm outline-none transition-all placeholder:text-brand-black/35 resize-none" />
+      </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          className="hidden"
-          onChange={handleFileChange}
+      {/* Multi-image uploader */}
+      <div className="border-t border-brand-black/5 pt-3 space-y-1.5">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-brand-black/60">
+          Imágenes del Producto
+          <span className="normal-case font-normal ml-1 text-brand-black/35">(hasta {MAX_IMAGES})</span>
+        </label>
+        <MultiImageUploader
+          entries={imageEntries}
+          onChange={setImageEntries}
+          uploadError={uploadError}
+          onUploadError={setUploadError}
         />
-
-        {uploadError && (
-          <p className="text-[10px] text-red-500 font-semibold">{uploadError}</p>
-        )}
-        {!imageFile && (
-          <p className="text-[10px] text-brand-black/30 font-medium">
-            Opcional — el producto se guardará sin imagen si no seleccionas ninguna.
-          </p>
-        )}
       </div>
 
       {/* Submit */}
-      <Button
-        type="submit"
-        variant="primary"
-        fullWidth
-        disabled={isBusy}
-        className="py-3 text-xs tracking-wider"
-      >
+      <Button type="submit" variant="primary" fullWidth disabled={isBusy} className="py-3 text-xs tracking-wider">
         {status === 'uploading' ? (
           <span className="flex items-center gap-2">
             <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Subiendo imagen…
+            Subiendo imágenes…
           </span>
         ) : status === 'submitting' ? (
           <span className="flex items-center gap-2">
@@ -1042,85 +1151,84 @@ const ProductEditWizard: React.FC<{
   onSave: (prod: Product) => Promise<void>;
   onCancel: () => void;
 }> = ({ product, onSave, onCancel }) => {
+  const { categories } = useApp();
+
   // Safely coerce every field — DB may return null/undefined for optional columns
   const safeIngredients = (() => {
     const raw = product.ingredients;
     if (!raw) return '';
     if (Array.isArray(raw)) return raw.join(', ');
-    return String(raw); // stored as plain text in DB
+    return String(raw);
   })();
+
+  // Initialize imageEntries from existing product images
+  const initEntries: ImageEntry[] = (
+    Array.isArray(product.images) && product.images.length > 0
+      ? product.images
+      : product.imageUrl ? [product.imageUrl] : []
+  ).map(url => ({ preview: url, file: null, isNew: false }));
+
+  // Resolve current product category name → id for the dropdown
+  const initCategoryId = () => {
+    const match = categories.find(c => c.name === product.category);
+    return match ? match.id : '';
+  };
 
   const [name, setName] = useState(product.name ?? '');
   const [desc, setDesc] = useState(product.description ?? '');
+  const [benefits, setBenefits] = useState(product.benefits ?? '');
+  const [howToUse, setHowToUse] = useState(product.howToUse ?? '');
   const [price, setPrice] = useState(product.price != null ? String(product.price) : '');
   const [stock, setStock] = useState(product.stock != null ? String(product.stock) : '0');
-  const [category, setCategory] = useState(product.category ?? 'Serums');
+  const [categoryId, setCategoryId] = useState(initCategoryId);
+
+  // Re-sync if categories load after the wizard mounts
+  React.useEffect(() => {
+    if (categories.length > 0 && !categoryId) {
+      const match = categories.find(c => c.name === product.category);
+      if (match) setCategoryId(match.id);
+    }
+  }, [categories]);
+
   const [ingredients, setIngredients] = useState(safeIngredients);
   const [isFeatured, setIsFeatured] = useState(product.isFeatured ?? false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>(product.imageUrl ?? '');
-  const [isNewImage, setIsNewImage] = useState(false);
+  const [imageEntries, setImageEntries] = useState<ImageEntry[]>(initEntries);
   const [uploadError, setUploadError] = useState('');
   const [status, setStatus] = useState<'idle' | 'uploading' | 'saving'>('idle');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { setUploadError('Solo imágenes (PNG, JPG, WEBP)'); return; }
-    if (file.size > 5 * 1024 * 1024) { setUploadError('Máx. 5 MB'); return; }
-    setUploadError('');
-    setImageFile(file);
-    if (isNewImage && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
-    setImagePreview(URL.createObjectURL(file));
-    setIsNewImage(true);
-    e.target.value = '';
-  };
-
-  const clearImage = () => {
-    if (isNewImage && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
-    setImageFile(null);
-    setImagePreview(product.imageUrl || '');
-    setIsNewImage(false);
-    setUploadError('');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || Number(price) <= 0 || Number(stock) < 0) return;
 
     setUploadError('');
-    let finalImageUrl = product.imageUrl ?? '';
-    const existingImages = Array.isArray(product.images) ? product.images : (product.imageUrl ? [product.imageUrl] : []);
-    let finalImages = existingImages;
+    let imageUrls: string[] = [];
 
-    if (imageFile && isNewImage) {
-      setStatus('uploading');
-      const path = `products/${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-      const { data, error: uploadErr } = await supabase.storage
-        .from('product-images')
-        .upload(path, imageFile, { cacheControl: '3600', upsert: false, contentType: imageFile.type });
-      if (uploadErr) {
-        setUploadError(`Error al subir: ${uploadErr.message}`);
+    if (imageEntries.length > 0) {
+      const hasNew = imageEntries.some(e => e.isNew);
+      if (hasNew) setStatus('uploading');
+      try {
+        imageUrls = await uploadImageEntries(imageEntries);
+      } catch (err: any) {
+        setUploadError(`Error al subir imágenes: ${err.message}`);
         setStatus('idle');
         return;
       }
-      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(data.path);
-      finalImageUrl = publicUrl;
-      finalImages = [publicUrl];
     }
 
     setStatus('saving');
+    const categoryName = categories.find(c => c.id === categoryId)?.name ?? product.category;
     await onSave({
       ...product,
       name: name.trim(),
       description: desc.trim(),
+      benefits: benefits.trim(),
+      howToUse: howToUse.trim(),
       price: Number(price),
       stock: Number(stock),
-      category,
+      category: categoryName,
       ingredients: ingredients.split(',').map(i => i.trim()).filter(Boolean),
-      imageUrl: finalImageUrl,
-      images: finalImages,
+      imageUrl: imageUrls[0] ?? product.imageUrl ?? '',
+      images: imageUrls.length > 0 ? imageUrls : (product.images ?? []),
       isFeatured,
     });
     setStatus('idle');
@@ -1152,14 +1260,22 @@ const ProductEditWizard: React.FC<{
         </div>
       </div>
 
-      {/* Category */}
+      {/* Category — cargado dinámicamente desde Supabase */}
       <div>
         <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1">Categoría</label>
-        <select value={category} onChange={e => setCategory(e.target.value)}
-          className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all cursor-pointer">
-          {['Serums','Moisturizers','Cleansers','Toners','Anti-Aging'].map(c => (
-            <option key={c} value={c}>{c}</option>
-          ))}
+        <select
+          value={categoryId}
+          onChange={e => setCategoryId(e.target.value)}
+          className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all cursor-pointer"
+        >
+          <option value="" disabled>— Selecciona una categoría —</option>
+          {categories.length === 0 ? (
+            <option disabled>Cargando categorías…</option>
+          ) : (
+            categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))
+          )}
         </select>
       </div>
 
@@ -1179,6 +1295,26 @@ const ProductEditWizard: React.FC<{
           className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all resize-none" />
       </div>
 
+      {/* Benefits */}
+      <div>
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1">
+          Beneficios <span className="normal-case font-normal text-brand-black/30">(un beneficio por línea)</span>
+        </label>
+        <textarea rows={2} value={benefits} onChange={e => setBenefits(e.target.value)}
+          placeholder={"Hidratación profunda\nReduce líneas de expresión"}
+          className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all resize-none" />
+      </div>
+
+      {/* How to use */}
+      <div>
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1">
+          Modo de Aplicación <span className="normal-case font-normal text-brand-black/30">(un paso por línea)</span>
+        </label>
+        <textarea rows={2} value={howToUse} onChange={e => setHowToUse(e.target.value)}
+          placeholder={"Aplica en piel limpia\nMasajea suavemente"}
+          className="w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all resize-none" />
+      </div>
+
       {/* Featured toggle */}
       <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
         <div
@@ -1192,39 +1328,18 @@ const ProductEditWizard: React.FC<{
         </span>
       </label>
 
-      {/* Image */}
-      <div className="border-t border-brand-black/5 pt-3 space-y-2">
-        <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60">Imagen</label>
-
-        {imagePreview ? (
-          <div className="relative w-full aspect-video rounded-luxury overflow-hidden border border-brand-black/10 bg-brand-gray-soft">
-            <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
-            {isNewImage && (
-              <button type="button" onClick={clearImage}
-                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-brand-black/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer shadow">
-                <X size={11} />
-              </button>
-            )}
-            <button type="button" onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-2 right-2 flex items-center gap-1 bg-brand-black/60 text-white text-[9px] font-bold px-2 py-1 rounded-luxury hover:bg-brand-black transition-colors cursor-pointer">
-              <ImagePlus size={10} />
-              Cambiar
-            </button>
-            {isNewImage && (
-              <span className="absolute top-2 left-2 bg-brand-green-dark text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">Nueva</span>
-            )}
-          </div>
-        ) : (
-          <button type="button" onClick={() => fileInputRef.current?.click()}
-            className="w-full flex flex-col items-center gap-2 py-5 border-2 border-dashed border-brand-black/12 rounded-luxury hover:border-brand-green-dark/50 transition-all cursor-pointer">
-            <ImagePlus size={18} className="text-brand-black/30" />
-            <span className="text-[10px] text-brand-black/40 font-semibold">Seleccionar imagen</span>
-          </button>
-        )}
-
-        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif"
-          className="hidden" onChange={handleFileChange} />
-        {uploadError && <p className="text-[10px] text-red-500 font-semibold">{uploadError}</p>}
+      {/* Multi-image uploader */}
+      <div className="border-t border-brand-black/5 pt-3 space-y-1.5">
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60">
+          Imágenes <span className="normal-case font-normal text-brand-black/30">(hasta {MAX_IMAGES})</span>
+        </label>
+        <MultiImageUploader
+          entries={imageEntries}
+          onChange={setImageEntries}
+          uploadError={uploadError}
+          onUploadError={setUploadError}
+          compact
+        />
       </div>
 
       {/* Actions */}

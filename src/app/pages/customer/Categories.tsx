@@ -1,42 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/ProductCard';
 import { Input, Select } from '../../components/UI';
 import { Search, SlidersHorizontal, Leaf, X } from 'lucide-react';
 
-// Display label overrides for known English DB category names
-const CATEGORY_LABELS: Record<string, string> = {
-  'Serums':        'Serums',
-  'Moisturizers':  'Hidratantes',
-  'Cleansers':     'Limpiadores',
-  'Toners':        'Tónicos',
-  'Anti-Aging':    'Antienvejecimiento',
-};
-
 export const Categories: React.FC = () => {
-  const { products } = useApp();
+  const { products, categories } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [maxPrice, setMaxPrice] = useState(500);   // high default so nothing is hidden
+  const [maxPrice, setMaxPrice] = useState(500);
   const [sortBy, setSortBy] = useState('featured');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // ── Build category list dynamically from whatever is in the products store ──
-  // This guarantees the filter values always match product.category exactly.
-  const availableCategories = useMemo(() => {
-    const unique = Array.from(
-      new Set(products.map(p => p.category).filter(Boolean))
-    ).sort();
-    console.log('[Categories] products in store:', products.length,
-      '| unique categories:', unique);
-    return unique;
-  }, [products]);
-
   // Max price of any product — used to cap the slider
-  const maxProductPrice = useMemo(
-    () => Math.max(500, ...products.map(p => p.price)),
-    [products]
-  );
+  const maxProductPrice = Math.max(500, ...products.map(p => p.price));
 
   const sortOptions = [
     { value: 'featured', label: 'Recomendados' },
@@ -145,20 +122,19 @@ export const Categories: React.FC = () => {
               >
                 Todos ({products.length})
               </button>
-              {availableCategories.map((cat) => {
-                const label = CATEGORY_LABELS[cat] ?? cat;
-                const count = products.filter(p => p.category === cat).length;
+              {categories.map((cat) => {
+                const count = products.filter(p => p.category === cat.name).length;
                 return (
                   <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.name)}
                     className={`w-full text-left px-3 py-2 rounded-luxury text-xs font-semibold transition-all cursor-pointer flex justify-between items-center ${
-                      selectedCategory === cat
+                      selectedCategory === cat.name
                         ? 'bg-brand-green-dark/10 text-brand-green-dark border-l-2 border-brand-green-dark'
                         : 'hover:bg-brand-gray-soft text-brand-black/75'
                     }`}
                   >
-                    <span>{label}</span>
+                    <span>{cat.name}</span>
                     <span className="text-[10px] text-brand-black/30 font-bold">{count}</span>
                   </button>
                 );
@@ -297,17 +273,17 @@ export const Categories: React.FC = () => {
                   >
                     Todos
                   </button>
-                  {availableCategories.map((cat) => (
+                  {categories.map((cat) => (
                     <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.name)}
                       className={`px-3 py-2 rounded-luxury text-xs font-semibold transition-all cursor-pointer border ${
-                        selectedCategory === cat
+                        selectedCategory === cat.name
                           ? 'bg-brand-green-dark/15 text-brand-green-dark border-brand-green-dark'
                           : 'border-brand-black/5 hover:border-brand-black/10 text-brand-black/75 bg-brand-white'
                       }`}
                     >
-                      {CATEGORY_LABELS[cat] ?? cat}
+                      {cat.name}
                     </button>
                   ))}
                 </div>

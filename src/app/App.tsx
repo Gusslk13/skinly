@@ -25,6 +25,12 @@ import { Profile } from './pages/customer/Profile';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { SupplierPortal } from './pages/supplier/SupplierPortal';
 import { AffiliateDashboard } from './pages/affiliate/AffiliateDashboard';
+import { AffiliateProgram } from './pages/affiliate/AffiliateProgram';
+
+// Payment Return Pages
+import { PagoExitoso } from './pages/payment/PagoExitoso';
+import { PagoFallido } from './pages/payment/PagoFallido';
+import { PagoPendiente } from './pages/payment/PagoPendiente';
 
 const AppContent: React.FC = () => {
   const { currentView } = useApp();
@@ -60,6 +66,14 @@ const AppContent: React.FC = () => {
         return <SupplierPortal />;
       case 'affiliate-dashboard':
         return <AffiliateDashboard />;
+      case 'affiliate-program':
+        return <AffiliateProgram />;
+      case 'pago-exitoso':
+        return <PagoExitoso />;
+      case 'pago-fallido':
+        return <PagoFallido />;
+      case 'pago-pendiente':
+        return <PagoPendiente />;
       default:
         return <Home />;
     }

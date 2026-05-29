@@ -25,6 +25,8 @@ export interface Product {
   name: string;
   description: string;
   ingredients: string[];
+  benefits?: string;        // Product benefits
+  howToUse?: string;        // Application instructions
   category: string;
   price: number;
   discountPrice?: number;
@@ -37,6 +39,9 @@ export interface Product {
   isFeatured: boolean;
   supplierId?: string;
 }
+
+export const FREE_SHIPPING_THRESHOLD = 600;
+export const SHIPPING_COST = 100;
 
 export interface CartItem {
   product: Product;
@@ -59,24 +64,25 @@ export interface OrderItem {
   imageUrl: string;
 }
 
+export interface ShippingAddress {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state?: string;
+  postal_code: string;
+  notes?: string;
+}
+
 export interface Order {
   id: string;
   customerId: string;
-  customerName: string;
-  customerEmail?: string;
-  customerPhone: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  references?: string;
-  paymentMethod: 'credit_card' | 'bank_transfer' | 'delivery_cash';
+  shippingAddress: ShippingAddress;
+  paymentMethod: string;
   items: OrderItem[];
-  subtotal: number;
-  discountAmount: number;
-  couponCode?: string;
-  shipping: number;
   total: number;
-  status: 'pending' | 'shipped' | 'delivered' | 'refunded';
+  status: string;
   createdAt: string;
 }
 
@@ -89,6 +95,13 @@ export interface SupplierApplication {
   status: 'pending' | 'approved' | 'rejected';
   verificationNotes?: string;
   createdAt: string;
+}
+
+export interface MPPaymentResult {
+  orderId: string;
+  paymentId?: string;
+  status: 'approved' | 'rejected' | 'pending' | string;
+  externalReference?: string;
 }
 
 export interface AffiliateProfile {
@@ -105,22 +118,26 @@ export interface AffiliateProfile {
   }[];
 }
 
-export type AppView = 
-  | 'splash' 
-  | 'onboarding' 
-  | 'login' 
-  | 'register' 
-  | 'home' 
-  | 'categories' 
-  | 'product-details' 
-  | 'cart' 
-  | 'checkout' 
-  | 'favorites' 
-  | 'order-history' 
-  | 'profile' 
-  | 'admin-dashboard' 
-  | 'supplier-portal' 
-  | 'affiliate-dashboard';
+export type AppView =
+  | 'splash'
+  | 'onboarding'
+  | 'login'
+  | 'register'
+  | 'home'
+  | 'categories'
+  | 'product-details'
+  | 'cart'
+  | 'checkout'
+  | 'favorites'
+  | 'order-history'
+  | 'profile'
+  | 'admin-dashboard'
+  | 'supplier-portal'
+  | 'affiliate-dashboard'
+  | 'affiliate-program'
+  | 'pago-exitoso'
+  | 'pago-fallido'
+  | 'pago-pendiente';
 
 interface AppContextType {
   // DB setup
@@ -144,6 +161,7 @@ interface AppContextType {
 
   // Products
   products: Product[];
+  categories: { id: string; name: string }[];
   addProduct: (productData: Omit<Product, 'id' | 'rating' | 'reviewsCount'>) => void;
   editProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
@@ -169,14 +187,24 @@ interface AppContextType {
   orders: Order[];
   placeOrder: (shippingDetails: {
     fullName: string;
+    email: string;
     phone: string;
     address: string;
     city: string;
+    state?: string;
     postalCode: string;
     references?: string;
-    paymentMethod: 'credit_card' | 'bank_transfer' | 'delivery_cash';
+    paymentMethod?: string;
   }) => Promise<{ success: boolean; orderId?: string; error?: string }>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
+
+  // MercadoPago
+  mpPayment: MPPaymentResult | null;
+  createMPOrder: (shippingDetails: {
+    fullName: string; email: string; phone: string; address: string;
+    city: string; state?: string; postalCode: string; references?: string;
+  }) => Promise<{ success: boolean; orderId?: string; error?: string }>;
+  confirmMPPayment: (orderId: string, paymentId: string) => Promise<void>;
 
   // Supplier System
   supplierApplications: SupplierApplication[];
@@ -220,18 +248,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [orders, setOrders] = useState<Order[]>([]);
   const [supplierApplications, setSupplierApplications] = useState<SupplierApplication[]>([]);
   const [affiliateProfiles, setAffiliateProfiles] = useState<AffiliateProfile[]>([]);
+  const [mpPayment, setMpPayment] = useState<MPPaymentResult | null>(null);
   // DB setup flag: true when Supabase tables lack GRANT permissions
   const [dbSetupRequired, setDbSetupRequired] = useState(false);
   
   // Customization Banners (Persist in localStorage)
+  const BANNER_DEFAULT = {
+    title: 'El Futuro de los Orgánicos de Alto Rendimiento',
+    subtitle: 'Formulaciones ultra limpias. Activos botánicos clínicamente probados. Verificado por Skinly.',
+    ctaText: 'Comprar Colección',
+    imageUrl: '/images/product-hero.png',
+  };
+
   const [featuredBanner, setFeaturedBannerState] = useState(() => {
     const saved = localStorage.getItem('skinly_featured_banner');
-    return saved ? JSON.parse(saved) : {
-      title: 'El Futuro de los Orgánicos de Alto Rendimiento',
-      subtitle: 'Formulaciones ultra limpias. Activos botánicos clínicamente probados. Verificado por Skinly.',
-      ctaText: 'Comprar Colección',
-      imageUrl: 'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?auto=format&fit=crop&q=80&w=1200'
-    };
+    if (!saved) return BANNER_DEFAULT;
+    const parsed = JSON.parse(saved);
+    // Migrate stale Unsplash URLs to local image
+    if (parsed.imageUrl?.includes('unsplash.com')) {
+      parsed.imageUrl = BANNER_DEFAULT.imageUrl;
+      localStorage.setItem('skinly_featured_banner', JSON.stringify(parsed));
+    }
+    return parsed;
   });
 
   const setFeaturedBanner = (banner: { title: string; subtitle: string; ctaText: string; imageUrl: string }) => {
@@ -243,6 +281,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+
+  // ── MercadoPago return URL detector ─────────────────────────────────────────
+  // MP redirects back to /?mp_return=exitoso|fallido|pendiente&payment_id=xxx&external_reference=ORDER_ID
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mpReturn = params.get('mp_return');
+    if (!mpReturn) return;
+
+    const paymentId = params.get('payment_id') || undefined;
+    const externalRef = params.get('external_reference') || undefined;
+    const mpStatus = params.get('status') || mpReturn;
+
+    const result: MPPaymentResult = {
+      orderId: externalRef || '',
+      paymentId,
+      status: mpStatus,
+      externalReference: externalRef,
+    };
+    setMpPayment(result);
+
+    // Clean the URL so a refresh doesn't re-trigger
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    if (mpReturn === 'exitoso') setCurrentView('pago-exitoso');
+    else if (mpReturn === 'fallido') setCurrentView('pago-fallido');
+    else setCurrentView('pago-pendiente');
+  }, []);
 
   // Splash Screen transition trigger
   useEffect(() => {
@@ -295,16 +360,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isVerified: false,
         isFeatured: p.featured,
         images: p.images || [],
-        supplierId: p.supplier_id || undefined
+        supplierId: p.supplier_id || undefined,
+        benefits: p.benefits || '',
+        howToUse: p.how_to_use || ''
       })));
     }
   };
 
+  const REQUIRED_CATEGORIES = [
+    'Serums',
+    'Hidratantes',
+    'Limpiadores',
+    'Tónicos',
+    'Antienvejecimiento',
+    'Cuidado Masculino',
+  ];
+
   const fetchCategories = async () => {
     const { data } = await supabase.from('categories').select('*');
-    if (data) {
-      setCategories(data);
+    const existing: { id: string; name: string }[] = data ?? [];
+
+    // Seed any missing categories so the dropdown is always complete
+    const existingNames = existing.map((c) => c.name);
+    const missing = REQUIRED_CATEGORIES.filter((n) => !existingNames.includes(n));
+    if (missing.length > 0) {
+      const { data: inserted } = await supabase
+        .from('categories')
+        .insert(missing.map((name) => ({ name })))
+        .select('*');
+      if (inserted) {
+        setCategories([...existing, ...inserted]);
+        return;
+      }
     }
+
+    setCategories(existing);
   };
 
   const fetchCoupons = async () => {
@@ -347,13 +437,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setOrders(data.map(o => ({
         id: o.id,
         customerId: o.customer_id,
-        customerName: o.customer_name,
-        customerPhone: o.customer_phone || '',
-        address: o.address,
-        city: o.city,
-        postalCode: o.postal_code,
-        references: o.references || undefined,
-        paymentMethod: o.payment_method as any,
+        shippingAddress: o.shipping_address || {},
+        paymentMethod: o.payment_method || 'por acordar',
         items: (o.order_items || []).map((oi: any) => ({
           productId: oi.product_id,
           name: oi.name,
@@ -361,12 +446,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           quantity: oi.quantity,
           imageUrl: oi.image_url
         })),
-        subtotal: parseFloat(o.subtotal),
-        discountAmount: parseFloat(o.discount_amount),
-        couponCode: o.coupon_code || undefined,
-        shipping: parseFloat(o.shipping),
         total: parseFloat(o.total),
-        status: o.status as any,
+        status: o.status || 'pendiente',
         createdAt: o.created_at
       })));
     }
@@ -705,7 +786,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         image_url: productData.imageUrl,
         images: productData.images && productData.images.length > 0 ? productData.images : (productData.imageUrl ? [productData.imageUrl] : []),
         featured: productData.isFeatured,
-        supplier_id: productData.supplierId || currentUser?.id
+        supplier_id: productData.supplierId || currentUser?.id,
+        benefits: productData.benefits || null,
+        how_to_use: productData.howToUse || null
       });
 
       if (error) {
@@ -731,7 +814,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         image_url: updatedProd.imageUrl,
         images: updatedProd.images && updatedProd.images.length > 0 ? updatedProd.images : (updatedProd.imageUrl ? [updatedProd.imageUrl] : []),
         featured: updatedProd.isFeatured,
-        supplier_id: updatedProd.supplierId
+        supplier_id: updatedProd.supplierId,
+        benefits: updatedProd.benefits || null,
+        how_to_use: updatedProd.howToUse || null
       }).eq('id', updatedProd.id);
 
       if (error) {
@@ -845,7 +930,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ? (subtotal * appliedCoupon.discountPercentage) / 100 
       : 0;
 
-    const shipping = subtotal > 100 || subtotal === 0 ? 0 : 10.00;
+    const shipping = subtotal === 0 ? 0 : subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
     const total = subtotal - discount + shipping;
 
     return { subtotal, discount, shipping, total };
@@ -895,47 +980,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Orders Placement & Affiliate Tracking
   const placeOrder = async (shippingDetails: {
     fullName: string;
+    email: string;
     phone: string;
     address: string;
     city: string;
+    state?: string;
     postalCode: string;
     references?: string;
-    paymentMethod: 'credit_card' | 'bank_transfer' | 'delivery_cash';
+    paymentMethod?: string;
   }): Promise<{ success: boolean; orderId?: string; error?: string }> => {
     if (!currentUser) return { success: false, error: 'Autenticación requerida' };
     if (cart.length === 0) return { success: false, error: 'El carrito está vacío' };
 
     try {
-      const { subtotal, discount, shipping, total } = getCartTotals();
-      const orderId = `skn-${Math.floor(1000 + Math.random() * 9000)}`;
+      const { total } = getCartTotals();
 
-      const { error: orderErr } = await supabase.from('orders').insert({
-        id: orderId,
+      const { error: orderErr, data: orderData } = await supabase.from('orders').insert({
         customer_id: currentUser.id,
-        customer_name: shippingDetails.fullName,
-        customer_phone: shippingDetails.phone,
-        address: shippingDetails.address,
-        city: shippingDetails.city,
-        postal_code: shippingDetails.postalCode,
-        references: shippingDetails.references || null,
-        payment_method: shippingDetails.paymentMethod,
-        subtotal,
-        discount_amount: discount,
-        coupon_code: appliedCoupon?.code || null,
-        shipping,
         total,
-        status: 'pending'
-      });
+        status: 'pendiente',
+        shipping_address: {
+          name: shippingDetails.fullName,
+          email: shippingDetails.email,
+          phone: shippingDetails.phone,
+          address: shippingDetails.address,
+          city: shippingDetails.city,
+          state: shippingDetails.state || '',
+          postal_code: shippingDetails.postalCode,
+          notes: shippingDetails.references || ''
+        },
+        payment_method: 'por acordar'
+      }).select('id').single();
 
-      if (orderErr) return { success: false, error: orderErr.message };
+      if (orderErr || !orderData) return { success: false, error: orderErr?.message || 'No se pudo crear el pedido' };
+      const orderId = orderData.id;
 
       const orderItems = cart.map(item => ({
         order_id: orderId,
         product_id: item.product.id,
-        name: item.product.name,
-        price: item.product.discountPrice || item.product.price,
         quantity: item.quantity,
-        image_url: item.product.imageUrl
+        price: item.product.discountPrice || item.product.price,
       }));
 
       const { error: itemsErr } = await supabase.from('order_items').insert(orderItems);
@@ -985,6 +1069,91 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (err: any) {
       alert("Excepción al actualizar pedido: " + err.message);
+    }
+  };
+
+  // ── MercadoPago: create a pending order (does NOT clear cart) ───────────────
+  const createMPOrder = async (shippingDetails: {
+    fullName: string; email: string; phone: string; address: string;
+    city: string; state?: string; postalCode: string; references?: string;
+  }): Promise<{ success: boolean; orderId?: string; error?: string }> => {
+    if (!currentUser) return { success: false, error: 'Autenticación requerida' };
+    if (cart.length === 0) return { success: false, error: 'El carrito está vacío' };
+
+    try {
+      const { total } = getCartTotals();
+
+      const { error: orderErr, data: orderData } = await supabase.from('orders').insert({
+        customer_id: currentUser.id,
+        total,
+        status: 'pendiente_pago',
+        shipping_address: {
+          name: shippingDetails.fullName,
+          email: shippingDetails.email,
+          phone: shippingDetails.phone,
+          address: shippingDetails.address,
+          city: shippingDetails.city,
+          state: shippingDetails.state || '',
+          postal_code: shippingDetails.postalCode,
+          notes: shippingDetails.references || ''
+        },
+        payment_method: 'mercadopago'
+      }).select('id').single();
+
+      if (orderErr || !orderData) {
+        return { success: false, error: orderErr?.message || 'No se pudo crear el pedido' };
+      }
+      const orderId = orderData.id;
+
+      const orderItems = cart.map(item => ({
+        order_id: orderId,
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.discountPrice || item.product.price,
+      }));
+
+      const { error: itemsErr } = await supabase.from('order_items').insert(orderItems);
+      if (itemsErr) return { success: false, error: itemsErr.message };
+
+      return { success: true, orderId };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  // ── MercadoPago: confirm payment (called from PagoExitoso page) ──────────────
+  const confirmMPPayment = async (orderId: string, paymentId: string) => {
+    try {
+      await supabase.from('orders').update({
+        status: 'pagado',
+        payment_method: `mercadopago:${paymentId}`
+      }).eq('id', orderId);
+
+      // Now clear the cart and update product stock
+      for (const item of cart) {
+        const newStock = Math.max(0, item.product.stock - item.quantity);
+        await supabase.from('products').update({ stock: newStock }).eq('id', item.product.id);
+      }
+
+      // Handle affiliate commission if applicable
+      if (appliedCoupon?.affiliateId) {
+        const { total } = getCartTotals();
+        const commissionEarned = parseFloat((total * 0.15).toFixed(2));
+        const { data: aff } = await supabase.from('affiliates').select('*').eq('user_id', appliedCoupon.affiliateId).maybeSingle();
+        if (aff) {
+          await supabase.from('affiliates').update({
+            commission_earned: parseFloat(aff.commission_earned) + commissionEarned,
+            referred_sales: aff.referred_sales + 1
+          }).eq('user_id', appliedCoupon.affiliateId);
+        }
+        await supabase.from('coupons').update({ usage_count: appliedCoupon.usageCount + 1 }).eq('code', appliedCoupon.code);
+      }
+
+      await clearCart();
+      if (currentUser) fetchOrders(currentUser.id);
+      fetchProducts();
+    } catch (err: any) {
+      console.error('Error confirmando pago MP:', err.message);
     }
   };
 
@@ -1104,6 +1273,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       switchRole,
 
       products,
+      categories,
       addProduct,
       editProduct,
       deleteProduct,
@@ -1126,6 +1296,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       orders,
       placeOrder,
       updateOrderStatus,
+
+      mpPayment,
+      createMPOrder,
+      confirmMPPayment,
 
       supplierApplications,
       submitSupplierApplication,

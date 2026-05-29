@@ -137,7 +137,7 @@ export const AffiliateDashboard: React.FC = () => {
                   {affProfile.couponCode}
                 </h3>
                 <p className="text-[11px] text-brand-white/70 leading-relaxed font-semibold">
-                  Ofrece a tus clientes **10% DE DESCUENTO** en su pedido, y recibe **15% de comisión** sobre el total pagado.
+                  Ofrece a tus clientes <strong>10% de descuento</strong> en su pedido, y recibe <strong>15% de comisión</strong> sobre el total pagado.
                 </p>
               </div>
 
@@ -222,7 +222,7 @@ export const AffiliateDashboard: React.FC = () => {
             <Button
               variant="primary"
               fullWidth
-              onClick={() => requestPayout(currentUser.id)}
+              onClick={() => currentUser && requestPayout(currentUser.id)}
               disabled={affProfile.commissionEarned <= 0}
               className="py-3 gap-2"
             >

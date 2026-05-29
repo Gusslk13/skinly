@@ -6,7 +6,10 @@
       "Bash(mkdir -p \"/c/Users/gusst/Desktop/Skinly/.claude\")",
       "mcp__Claude_Preview__preview_start",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(npx tsc *)",
+      "Bash(grep -v \"//.*\\\\*\\\\*\")",
+      "Bash(npm install *)"
     ]
   }
 }

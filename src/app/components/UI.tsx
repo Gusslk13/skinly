@@ -210,7 +210,7 @@ export const VerifiedBadge: React.FC<{ ingredients?: string[] }> = ({ ingredient
 
             <div className="space-y-4 text-sm text-brand-black/80">
               <p className="leading-relaxed">
-                Este producto cuenta con el prestigioso sello **Skinly Verificado**. Ha sido sometido a una rigurosa verificación de materias primas por parte de nuestro equipo de laboratorio.
+                Este producto cuenta con el prestigioso sello <strong>Skinly Verificado</strong>. Ha sido sometido a una rigurosa verificación de materias primas por parte de nuestro equipo de laboratorio.
               </p>
               
               <div className="bg-brand-green-dark/5 p-4 rounded-luxury border border-brand-green-dark/10">

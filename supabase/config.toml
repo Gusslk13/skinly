@@ -1,0 +1,20 @@
+# A string used to distinguish different Supabase projects on the same host.
+project_id = "skinly"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+
+[auth]
+site_url = "http://localhost:5173"
+
+[functions]
+# Edge functions are deployed automatically via `supabase functions deploy`

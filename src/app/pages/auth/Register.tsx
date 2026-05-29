@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Button, Input } from '../../components/UI';
-import { Leaf, Eye, EyeOff, ShieldAlert, Check } from 'lucide-react';
+import { Eye, EyeOff, ShieldAlert, Check } from 'lucide-react';
 
 export const Register: React.FC = () => {
   const { register, setView } = useApp();
@@ -62,9 +62,11 @@ export const Register: React.FC = () => {
         
         {/* Encabezado de marca */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-12 h-12 rounded-full bg-brand-green-dark/10 flex items-center justify-center text-brand-green-dark mb-4">
-            <Leaf size={22} className="stroke-[1.5]" />
-          </div>
+          <img
+            src="/images/logo.png"
+            alt="Skinly"
+            className="w-14 h-14 object-contain mb-3"
+          />
           <h2 className="font-heading text-3xl font-extrabold tracking-[0.15em] text-brand-black">
             SKINLY
           </h2>
@@ -181,7 +183,10 @@ export const Register: React.FC = () => {
               {agreeTerms && <Check size={11} className="stroke-[3]" />}
             </button>
             <span className="text-[11px] font-semibold text-brand-black/50 leading-tight">
-              Al registrarme, acepto los **Términos de Servicio** y el **Consentimiento de Privacidad del Perfil de Piel**.
+              Al registrarme, acepto los{' '}
+              <span className="text-brand-black font-bold">Términos de Servicio</span>
+              {' '}y el{' '}
+              <span className="text-brand-black font-bold">Consentimiento de Privacidad del Perfil de Piel</span>.
             </span>
           </div>
 

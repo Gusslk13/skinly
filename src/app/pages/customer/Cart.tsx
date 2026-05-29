@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp, FREE_SHIPPING_THRESHOLD } from '../../context/AppContext';
 import { Button } from '../../components/UI';
 import { ImageWithFallback } from '../../components/ImageWithFallback';
-import { ShoppingBag, Trash2, ArrowRight, Award, HelpCircle, Ticket, X } from 'lucide-react';
+import { ShoppingBag, Trash2, ArrowRight, Ticket, X, Truck } from 'lucide-react';
 
 export const Cart: React.FC = () => {
   const { 
@@ -33,9 +33,6 @@ export const Cart: React.FC = () => {
       setCouponError(result.error || 'Código inválido');
     }
   };
-
-  const freeShippingTarget = 100;
-  const remainsForFreeShipping = Math.max(0, freeShippingTarget - subtotal);
 
   if (cart.length === 0) {
     return (
@@ -73,23 +70,34 @@ export const Cart: React.FC = () => {
         
         {/* Lista de artículos (2/3 de ancho) */}
         <div className="lg:col-span-2 space-y-4">
-          
-          {/* Barra de alerta de envío gratis */}
-          {remainsForFreeShipping > 0 ? (
-            <div className="bg-brand-green-dark/5 p-4 border border-brand-green-dark/15 rounded-luxury text-left text-xs font-semibold text-brand-green-dark flex items-center justify-between">
-              <span>Agrega **${remainsForFreeShipping.toFixed(2)}** más para desbloquear envío de lujo gratis!</span>
-              <button 
-                onClick={() => setView('categories')}
-                className="hover:underline text-[10px] font-bold uppercase tracking-wider text-brand-black"
-              >
-                Seguir Comprando
-              </button>
-            </div>
-          ) : (
-            <div className="bg-brand-green-dark p-4 rounded-luxury text-left text-xs font-bold text-brand-white">
-              🎉 ¡Felicidades! Has desbloqueado el Envío de Lujo Gratis!
-            </div>
-          )}
+
+          {/* Barra de progreso de envío gratis */}
+          {(() => {
+            const remains = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
+            const pct = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
+            return remains > 0 ? (
+              <div className="bg-brand-white border border-brand-black/5 rounded-luxury p-4 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-semibold text-brand-black/70">
+                    <Truck size={13} className="text-brand-green-dark" />
+                    <span>Te faltan <strong className="text-brand-black">${remains.toFixed(2)}</strong> para envío gratis</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-brand-black/40">${FREE_SHIPPING_THRESHOLD} mínimo</span>
+                </div>
+                <div className="w-full h-1.5 bg-brand-gray-soft rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-brand-green-dark rounded-full transition-all duration-500"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="bg-brand-green-dark/8 border border-brand-green-dark/20 rounded-luxury p-3.5 flex items-center gap-2.5 text-xs font-bold text-brand-green-dark">
+                <Truck size={14} />
+                🎉 ¡Tienes envío gratis en este pedido!
+              </div>
+            );
+          })()}
 
           {/* Lista de artículos en el carrito */}
           <div className="bg-brand-white border border-brand-black/5 rounded-luxury divide-y divide-brand-black/5">
@@ -123,30 +131,30 @@ export const Cart: React.FC = () => {
                         {/* Botón de eliminar */}
                         <button
                           onClick={() => removeFromCart(item.product.id)}
-                          className="p-1 text-brand-black/30 hover:text-red-500 transition-colors cursor-pointer"
+                          className="p-2 -mr-1 text-brand-black/30 hover:text-red-500 transition-colors cursor-pointer active:scale-90"
                           title="Eliminar artículo"
                         >
-                          <Trash2 size={15} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
 
                     {/* Selector de cantidad y costo */}
-                    <div className="flex justify-between items-end mt-4">
-                      {/* Selector */}
+                    <div className="flex justify-between items-center mt-4">
+                      {/* Selector — botones táctiles grandes */}
                       <div className="flex items-center border border-brand-black/10 rounded-luxury bg-brand-white overflow-hidden">
                         <button
                           onClick={() => updateCartQuantity(item.product.id, item.quantity - 1)}
-                          className="px-2.5 py-1 text-xs font-bold text-brand-black/50 hover:bg-brand-gray-soft cursor-pointer"
+                          className="w-9 h-9 flex items-center justify-center text-sm font-bold text-brand-black/50 hover:bg-brand-gray-soft active:bg-brand-gray-soft cursor-pointer transition-colors"
                         >
-                          -
+                          −
                         </button>
-                        <span className="px-3 text-xs font-bold text-brand-black min-w-6 text-center">
+                        <span className="px-3 text-xs font-bold text-brand-black min-w-[2rem] text-center">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => updateCartQuantity(item.product.id, item.quantity + 1)}
-                          className="px-2.5 py-1 text-xs font-bold text-brand-black/50 hover:bg-brand-gray-soft cursor-pointer"
+                          className="w-9 h-9 flex items-center justify-center text-sm font-bold text-brand-black/50 hover:bg-brand-gray-soft active:bg-brand-gray-soft cursor-pointer transition-colors"
                         >
                           +
                         </button>
@@ -194,7 +202,7 @@ export const Cart: React.FC = () => {
               )}
 
               <div className="flex justify-between font-semibold">
-                <span>Envío de Lujo</span>
+                <span>Envío</span>
                 <span>{shipping === 0 ? 'Gratis' : `$${shipping.toFixed(2)}`}</span>
               </div>
 
@@ -266,7 +274,7 @@ export const Cart: React.FC = () => {
                 )}
 
                 <p className="text-[10px] text-brand-black/40 leading-relaxed font-semibold pt-1">
-                  💡 Pista: Ingresa **LUPITA10** para obtener **10% DE DESCUENTO** y acreditar los clicks de Lupita. O **WELCOME15** para **15% DE DESCUENTO**.
+                  💡 Pista: Ingresa <strong className="text-brand-green-dark font-mono">LUPITA10</strong> para obtener <strong>10% de descuento</strong> y acreditar los clicks de Lupita. O <strong className="font-mono">WELCOME15</strong> para <strong>15% de descuento</strong>.
                 </p>
               </form>
             )}

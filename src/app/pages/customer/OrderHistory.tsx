@@ -139,21 +139,11 @@ export const OrderHistory: React.FC = () => {
                 <div className="bg-brand-gray-soft/50 p-4 rounded-luxury border border-brand-black/5 space-y-3.5 text-xs">
                   <div>
                     <span className="block text-[10px] font-bold text-brand-black/40 uppercase tracking-wider">Enviar A</span>
-                    <span className="font-bold text-brand-black/80 block mt-0.5">{order.customerName}</span>
-                    <span className="text-brand-black/50 block truncate mt-0.5">{order.address}, {order.city}</span>
+                    <span className="font-bold text-brand-black/80 block mt-0.5">{order.shippingAddress?.name}</span>
+                    <span className="text-brand-black/50 block truncate mt-0.5">{order.shippingAddress?.address}, {order.shippingAddress?.city}</span>
                   </div>
 
                   <div className="border-t border-brand-black/5 pt-2.5 space-y-1 text-brand-black/75">
-                    {order.discountAmount > 0 && (
-                      <div className="flex justify-between font-bold text-brand-green-dark">
-                        <span>Descuento ({order.couponCode})</span>
-                        <span>-${order.discountAmount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-semibold">
-                      <span>Costo de Envío</span>
-                      <span>{order.shipping === 0 ? 'Gratis' : `$${order.shipping.toFixed(2)}`}</span>
-                    </div>
                     <div className="flex justify-between font-extrabold text-sm text-brand-black pt-1.5 border-t border-brand-black/5">
                       <span>Total Pagado</span>
                       <span>${order.total.toFixed(2)}</span>

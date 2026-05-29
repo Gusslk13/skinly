@@ -3,7 +3,7 @@ import { useApp, FREE_SHIPPING_THRESHOLD } from '../../context/AppContext';
 import { StarRating } from '../../components/StarRating';
 import { VerifiedBadge } from '../../components/UI';
 import { Button } from '../../components/UI';
-import { ChevronLeft, ShoppingBag, Heart, Check, Truck, RefreshCw, Leaf, Droplets } from 'lucide-react';
+import { ChevronLeft, ShoppingBag, Heart, Check, Truck, RefreshCw, Leaf, Star, MessageSquare, Send, ShieldAlert } from 'lucide-react';
 
 // ── Render **bold** and line breaks from plain text ──────────────────────────
 function renderMarkdown(text: string): React.ReactNode {
@@ -23,13 +23,24 @@ function renderMarkdown(text: string): React.ReactNode {
   return <>{nodes}</>;
 }
 
-type TabId = 'details' | 'benefits' | 'application' | 'ingredients';
+type TabId = 'details' | 'benefits' | 'application' | 'ingredients' | 'reviews';
 
 export const ProductDetails: React.FC = () => {
-  const { selectedProductId, products, addToCart, toggleFavorite, isFavorite, goBack } = useApp();
+  const {
+    selectedProductId, products, addToCart, toggleFavorite, isFavorite, goBack,
+    reviews, fetchReviews, submitReview, hasUserPurchasedProduct, hasUserReviewedProduct,
+    currentUser
+  } = useApp();
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<TabId>('details');
   const [activeImage, setActiveImage] = useState<string>('');
+
+  // Review form state
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState(false);
 
   const product = products.find(p => p.id === selectedProductId);
 
@@ -47,6 +58,11 @@ export const ProductDetails: React.FC = () => {
     if (allImages.length > 0) setActiveImage(allImages[0]);
   }, [product?.id]);
 
+  // Fetch reviews when product changes or reviews tab opened
+  React.useEffect(() => {
+    if (product?.id) fetchReviews(product.id);
+  }, [product?.id]);
+
   if (!product) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
@@ -62,11 +78,26 @@ export const ProductDetails: React.FC = () => {
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : 0;
 
+  const productReviews = reviews.filter(r => r.productId === product.id);
+  const canReview = currentUser && hasUserPurchasedProduct(product.id) && !hasUserReviewedProduct(product.id) && !reviewSuccess;
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewComment.trim()) { setReviewError('Escribe un comentario para continuar.'); return; }
+    setReviewLoading(true);
+    setReviewError('');
+    const res = await submitReview(product.id, reviewRating, reviewComment);
+    setReviewLoading(false);
+    if (res.success) { setReviewSuccess(true); setReviewComment(''); }
+    else setReviewError(res.error || 'Error al enviar la reseña.');
+  };
+
   const tabs: { id: TabId; label: string }[] = [
     { id: 'details',      label: 'Detalles' },
     { id: 'benefits',     label: 'Beneficios' },
     { id: 'application',  label: 'Aplicación' },
     { id: 'ingredients',  label: `Ingredientes (${product.ingredients.length})` },
+    { id: 'reviews',      label: `Reseñas (${productReviews.length})` },
   ];
 
   return (
@@ -342,6 +373,123 @@ export const ProductDetails: React.FC = () => {
               ) : (
                 <p className="italic text-sm text-brand-black/40">Sin ingredientes registrados.</p>
               )}
+            </div>
+          )}
+
+          {/* RESEÑAS */}
+          {activeTab === 'reviews' && (
+            <div className="space-y-6 max-w-2xl">
+
+              {/* Formulario para dejar reseña (solo si compró y no ha reseñado) */}
+              {canReview && (
+                <form onSubmit={handleSubmitReview} className="bg-brand-green-dark/5 border border-brand-green-dark/15 rounded-luxury p-5 space-y-4">
+                  <div>
+                    <span className="block text-[10px] font-extrabold uppercase tracking-widest text-brand-green-dark mb-1">
+                      Deja tu reseña
+                    </span>
+                    <p className="text-xs text-brand-black/50">Compraste este producto — comparte tu experiencia.</p>
+                  </div>
+
+                  {/* Star selector */}
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewRating(star)}
+                        className="cursor-pointer transition-transform active:scale-90"
+                      >
+                        <Star
+                          size={22}
+                          className={star <= reviewRating
+                            ? 'fill-brand-green-dark text-brand-green-dark'
+                            : 'text-brand-black/15'
+                          }
+                        />
+                      </button>
+                    ))}
+                    <span className="ml-2 text-xs font-bold text-brand-black/50">
+                      {['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'][reviewRating]}
+                    </span>
+                  </div>
+
+                  <textarea
+                    value={reviewComment}
+                    onChange={e => setReviewComment(e.target.value)}
+                    placeholder="Cuéntanos cómo te fue con este producto..."
+                    rows={3}
+                    className="w-full px-4 py-3 bg-brand-white border border-brand-black/10 focus:border-brand-green-dark rounded-luxury text-sm outline-none resize-none transition-all"
+                    disabled={reviewLoading}
+                  />
+
+                  {reviewError && (
+                    <div className="flex items-center gap-2 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-luxury px-3 py-2">
+                      <ShieldAlert size={13} className="shrink-0" />
+                      {reviewError}
+                    </div>
+                  )}
+
+                  <Button type="submit" variant="primary" disabled={reviewLoading} className="gap-2 py-2.5 text-xs">
+                    <Send size={13} />
+                    {reviewLoading ? 'Enviando...' : 'Publicar Reseña'}
+                  </Button>
+                </form>
+              )}
+
+              {/* Mensaje de éxito */}
+              {reviewSuccess && (
+                <div className="flex items-center gap-2.5 text-sm font-semibold text-brand-green-dark bg-brand-green-dark/5 border border-brand-green-dark/15 rounded-luxury px-4 py-3">
+                  <Check size={16} className="shrink-0" />
+                  ¡Gracias! Tu reseña fue publicada.
+                </div>
+              )}
+
+              {/* Lista de reseñas */}
+              {productReviews.length > 0 ? (
+                <div className="space-y-4">
+                  {productReviews.map(review => (
+                    <div key={review.id} className="bg-brand-white border border-brand-black/5 rounded-luxury p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <span className="block text-xs font-bold text-brand-black">{review.userFullName}</span>
+                          <span className="text-[10px] text-brand-black/35 font-medium">
+                            {new Date(review.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className="flex gap-0.5 shrink-0">
+                          {[1, 2, 3, 4, 5].map(s => (
+                            <Star key={s} size={12}
+                              className={s <= review.rating ? 'fill-brand-green-dark text-brand-green-dark' : 'text-brand-black/10'} />
+                          ))}
+                        </div>
+                      </div>
+                      {review.comment && (
+                        <p className="text-xs text-brand-black/65 leading-relaxed">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 space-y-2">
+                  <MessageSquare size={32} className="mx-auto text-brand-black/15 stroke-1" />
+                  <p className="text-xs text-brand-black/40 font-medium">
+                    Aún no hay reseñas para este producto. ¡Sé el primero en compartir tu experiencia!
+                  </p>
+                </div>
+              )}
+
+              {/* Mensaje si no ha comprado */}
+              {!currentUser && (
+                <p className="text-xs text-brand-black/40 italic">
+                  Inicia sesión y compra este producto para dejar una reseña.
+                </p>
+              )}
+              {currentUser && !hasUserPurchasedProduct(product.id) && !hasUserReviewedProduct(product.id) && !reviewSuccess && (
+                <p className="text-xs text-brand-black/40 italic">
+                  Solo clientes que han comprado este producto pueden dejar reseñas verificadas.
+                </p>
+              )}
+
             </div>
           )}
 

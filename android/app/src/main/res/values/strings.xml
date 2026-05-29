@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SKINLY</string>
+    <string name="title_activity_main">SKINLY</string>
+    <string name="package_name">com.skinly.app</string>
+    <string name="custom_url_scheme">com.skinly.app</string>
+</resources>

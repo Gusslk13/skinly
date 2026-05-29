@@ -304,29 +304,85 @@ export const Checkout: React.FC = () => {
           </div>
 
           {/* Payment method */}
-          <div className="bg-brand-white p-6 sm:p-8 rounded-luxury border border-brand-black/5 space-y-4">
+          <div className="bg-brand-white p-6 sm:p-8 rounded-luxury border border-brand-black/5 space-y-5">
             <h2 className="font-heading text-xl font-bold text-brand-black border-b border-brand-black/5 pb-3">
               Método de Pago
             </h2>
 
-            {/* MercadoPago badge */}
-            <div className="flex items-center gap-4 p-4 border border-[#009EE3]/20 bg-[#009EE3]/5 rounded-luxury">
-              <div className="w-10 h-10 bg-[#009EE3] rounded-xl flex items-center justify-center shrink-0">
-                <CreditCard size={18} className="text-white" />
+            {/* ── MercadoPago professional card ───────────────────────────────── */}
+            <div className="border-2 border-[#009EE3] rounded-luxury overflow-hidden">
+
+              {/* Header row */}
+              <div className="bg-[#009EE3] px-5 py-3 flex items-center justify-between">
+                <img
+                  src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.21.22/mercadopago/logo__large@2x.png"
+                  alt="MercadoPago"
+                  className="h-6 object-contain"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+                <span className="inline-flex items-center gap-1 bg-white/20 backdrop-blur-sm text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full border border-white/30">
+                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
+                  </svg>
+                  100% Seguro
+                </span>
               </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-brand-black">MercadoPago Checkout Pro</p>
-                <p className="text-[11px] text-brand-black/50 leading-relaxed font-medium">
-                  Tarjeta de crédito / débito, OXXO, transferencia y más. Procesado de forma segura.
+
+              {/* Body */}
+              <div className="p-5 space-y-4 bg-[#009EE3]/3">
+                <p className="text-sm font-bold text-brand-black">
+                  Paga de forma segura con MercadoPago
+                </p>
+
+                {/* Accepted payment methods */}
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-brand-black/40">
+                    Métodos aceptados
+                  </p>
+                  <div className="flex flex-wrap gap-2 items-center">
+
+                    {/* Visa */}
+                    <div className="h-7 px-2.5 bg-white border border-brand-black/8 rounded-md flex items-center justify-center shadow-sm">
+                      <svg viewBox="0 0 60 20" className="h-3.5 w-auto" fill="none">
+                        <text x="0" y="16" fontFamily="Arial" fontWeight="bold" fontSize="18" fill="#1A1F71">VISA</text>
+                      </svg>
+                    </div>
+
+                    {/* Mastercard */}
+                    <div className="h-7 px-2 bg-white border border-brand-black/8 rounded-md flex items-center gap-1 shadow-sm">
+                      <div className="w-4 h-4 rounded-full bg-[#EB001B]" />
+                      <div className="w-4 h-4 rounded-full bg-[#F79E1B] -ml-2" />
+                    </div>
+
+                    {/* OXXO */}
+                    <div className="h-7 px-2.5 bg-white border border-brand-black/8 rounded-md flex items-center shadow-sm">
+                      <span className="text-[11px] font-extrabold text-[#EE3224] tracking-tight">OXXO</span>
+                    </div>
+
+                    {/* Transferencia */}
+                    <div className="h-7 px-2.5 bg-white border border-brand-black/8 rounded-md flex items-center gap-1.5 shadow-sm">
+                      <CreditCard size={12} className="text-brand-black/50" />
+                      <span className="text-[10px] font-bold text-brand-black/60">Transferencia</span>
+                    </div>
+
+                    {/* Y más */}
+                    <span className="text-[10px] font-semibold text-brand-black/40">y más…</span>
+                  </div>
+                </div>
+
+                {/* Redirect notice */}
+                <p className="text-[10px] text-brand-black/50 font-medium leading-relaxed">
+                  Al confirmar tu pedido serás redirigido al portal seguro de MercadoPago para completar el pago. No compartimos tus datos bancarios.
                 </p>
               </div>
-              <span className="ml-auto shrink-0 w-4 h-4 rounded-full border-2 border-[#009EE3] flex items-center justify-center">
-                <span className="w-2 h-2 rounded-full bg-[#009EE3]" />
-              </span>
             </div>
 
-            <p className="text-[10px] text-brand-black/40 font-medium leading-relaxed">
-              🔒 Al confirmar, serás redirigido al portal seguro de MercadoPago para completar el pago.
+            {/* SSL trust line */}
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-brand-black/40 font-semibold">
+              <svg className="w-3 h-3 text-brand-green-dark shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
+              </svg>
+              Tu información está protegida con encriptación SSL de 256 bits
             </p>
 
             {/* Inline error display */}

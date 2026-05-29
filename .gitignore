@@ -1,4 +1,6 @@
 node_modules/
 dist/
 .env.local
-.env
+# .env is committed intentionally — it contains only public Vite env vars
+# (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MP_PUBLIC_KEY).
+# These are browser-safe public credentials. Never put secret keys here.

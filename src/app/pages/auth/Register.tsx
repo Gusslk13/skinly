@@ -3,9 +3,11 @@ import { useApp } from '../../context/AppContext';
 import { Button, Input } from '../../components/UI';
 import { Eye, EyeOff, ShieldAlert, Check } from 'lucide-react';
 import { supabase } from '../../../supabase';
+import { useGoogleAuth } from '../../hooks/useGoogleAuth';
 
 export const Register: React.FC = () => {
   const { register, setView } = useApp();
+  const { signInWithGoogle, loading: googleLoading, error: googleError } = useGoogleAuth();
   
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -43,21 +45,8 @@ export const Register: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError('');
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    }
-    // No setLoading(false) on success — browser redirects to Google
-  };
+  // Google Sign-In is handled by the useGoogleAuth hook (shared with Login).
+  // On Android: native account picker. On Web: OAuth redirect.
 
   return (
     <div className="min-h-screen bg-brand-gray-soft flex items-center justify-center p-4 sm:p-6 md:p-8 select-none relative overflow-hidden">
@@ -83,10 +72,10 @@ export const Register: React.FC = () => {
           </p>
         </div>
 
-        {error && (
+        {(error || googleError) && (
           <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-600 rounded-luxury flex items-center gap-2 text-xs font-semibold text-left">
             <ShieldAlert size={14} className="shrink-0" />
-            <span>{error}</span>
+            <span>{error || googleError}</span>
           </div>
         )}
 
@@ -94,8 +83,8 @@ export const Register: React.FC = () => {
         <div className="mb-6">
           <button
             type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading}
+            onClick={signInWithGoogle}
+            disabled={loading || googleLoading}
             className="w-full flex items-center justify-center gap-2.5 py-3 px-4 bg-brand-white border border-brand-black/10 hover:border-brand-black hover:bg-brand-gray-soft text-xs font-bold text-brand-black rounded-luxury transition-all cursor-pointer shadow-sm active:scale-98"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -104,7 +93,7 @@ export const Register: React.FC = () => {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
             </svg>
-            Continuar con Google
+            {googleLoading ? 'Conectando con Google...' : 'Continuar con Google'}
           </button>
         </div>
 
@@ -125,7 +114,7 @@ export const Register: React.FC = () => {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
-            disabled={loading}
+            disabled={loading || googleLoading}
           />
 
           <Input
@@ -135,7 +124,7 @@ export const Register: React.FC = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={loading}
+            disabled={loading || googleLoading}
           />
 
           {/* Campo de contraseña con toggle */}
@@ -150,7 +139,7 @@ export const Register: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={loading}
+                disabled={loading || googleLoading}
                 className="w-full px-4 py-3 bg-brand-white border border-brand-black/10 focus:border-brand-green-dark focus:ring-brand-green-light/20 rounded-luxury text-sm outline-none transition-all duration-300 pr-10"
               />
               
@@ -190,7 +179,7 @@ export const Register: React.FC = () => {
             type="submit"
             variant="primary"
             fullWidth
-            disabled={loading}
+            disabled={loading || googleLoading}
             className="py-3.5 mt-4"
           >
             {loading ? 'Registrando Cuenta...' : 'Crear Cuenta'}

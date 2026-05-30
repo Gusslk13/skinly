@@ -7,18 +7,21 @@ import {
   Award, Ticket, Trash2, CheckCircle2,
   Layers, UserCheck, Plus, Settings, DollarSign,
   FileText, Terminal, Copy, AlertTriangle, ImagePlus, X,
-  Pencil, Star, StarOff
+  Pencil, Star, StarOff, Users, ToggleLeft, ToggleRight,
+  Clock, XCircle, Instagram, Youtube, Globe, Mic
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const {
     currentUser, products, orders, coupons, supplierApplications,
-    registeredUsers, affiliateProfiles, addProduct, editProduct,
-    deleteProduct, reviewSupplierApplication, featuredBanner, setFeaturedBanner,
-    addCoupon, updateOrderStatus, dbSetupRequired
+    registeredUsers, affiliateProfiles, affiliateApplications,
+    addProduct, editProduct, deleteProduct,
+    reviewSupplierApplication, reviewAffiliateApplication,
+    featuredBanner, setFeaturedBanner,
+    addCoupon, toggleCouponStatus, updateOrderStatus, dbSetupRequired
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'suppliers' | 'coupons' | 'customizer'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'suppliers' | 'affiliates' | 'coupons' | 'customizer'>('overview');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   // Guardia de seguridad - ¡DEBE ser rol admin!
@@ -79,8 +82,9 @@ export const AdminDashboard: React.FC = () => {
             { id: 'overview' as const, label: 'Analíticas', icon: BarChart3 },
             { id: 'products' as const, label: 'Catálogo', icon: Package },
             { id: 'orders' as const, label: 'Pedidos', icon: Truck },
-            { id: 'suppliers' as const, label: 'Auditorías Lab', icon: Award },
-            { id: 'coupons' as const, label: 'Cupones', icon: Ticket },
+            { id: 'suppliers' as const,  label: 'Auditorías Lab', icon: Award   },
+            { id: 'affiliates' as const, label: 'Afiliados',      icon: Users   },
+            { id: 'coupons' as const,    label: 'Cupones',         icon: Ticket  },
             { id: 'customizer' as const, label: 'Personalizar', icon: Settings }
           ].map((tab) => {
             const TabIcon = tab.icon;
@@ -574,7 +578,149 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         {/* ====================================================================
-            PESTAÑA 5: GESTIÓN DE AFILIADOS Y CUPONES
+            PESTAÑA 5: GESTIÓN DE AFILIADOS
+            ==================================================================== */}
+        {activeTab === 'affiliates' && (
+          <div className="space-y-8 text-left">
+
+            {/* ── Solicitudes Pendientes ── */}
+            <div className="space-y-4">
+              <div className="bg-brand-white p-4 rounded-luxury border border-brand-black/5 shadow-sm flex justify-between items-center text-xs font-bold text-brand-black/60">
+                <span>Solicitudes de Membresía ({affiliateApplications.length})</span>
+                <span className="text-amber-600">{affiliateApplications.filter(a => a.status === 'pendiente').length} pendientes</span>
+              </div>
+
+              {affiliateApplications.length === 0 ? (
+                <p className="text-xs italic text-brand-black/40 text-center py-10">No hay solicitudes de afiliado registradas.</p>
+              ) : (
+                <div className="space-y-4">
+                  {affiliateApplications.map(app => (
+                    <div key={app.id} className="bg-brand-white border border-brand-black/5 rounded-luxury overflow-hidden shadow-sm">
+                      {/* Header */}
+                      <div className="bg-brand-gray-soft px-5 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-brand-black/5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-brand-green-dark/10 flex items-center justify-center text-sm font-black text-brand-green-dark">
+                            {app.fullName.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="block text-sm font-bold text-brand-black">{app.fullName}</span>
+                            <span className="block text-[10px] text-brand-black/40 font-medium">{app.email} {app.phone ? `· ${app.phone}` : ''}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider rounded-full border ${
+                            app.status === 'aprobado'   ? 'bg-brand-green-dark/15 text-brand-green-dark border-brand-green-dark/20' :
+                            app.status === 'rechazado'  ? 'bg-red-100 text-red-700 border-red-200' :
+                            'bg-amber-100 text-amber-800 border-amber-200'
+                          }`}>
+                            {app.status === 'aprobado' ? 'Aprobado' : app.status === 'rechazado' ? 'Rechazado' : 'Pendiente'}
+                          </span>
+                          <span className="text-[9px] text-brand-black/30 font-medium">
+                            {new Date(app.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Body */}
+                      <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                        <div>
+                          <span className="block text-[9px] uppercase font-bold text-brand-black/35 tracking-wider mb-1">Plataforma</span>
+                          <span className="font-semibold text-brand-black capitalize">{app.platform || '—'}</span>
+                          <span className="block text-brand-green-dark font-bold mt-0.5">{app.handle}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[9px] uppercase font-bold text-brand-black/35 tracking-wider mb-1">Seguidores</span>
+                          <span className="font-semibold text-brand-black">{app.followersCount || '—'}</span>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="block text-[9px] uppercase font-bold text-brand-black/35 tracking-wider mb-1">¿Por qué quiere ser afiliado?</span>
+                          <p className="text-brand-black/70 leading-relaxed line-clamp-3">{app.whyAffiliate || '—'}</p>
+                        </div>
+                        {app.promotionPlan && (
+                          <div className="sm:col-span-2 lg:col-span-4">
+                            <span className="block text-[9px] uppercase font-bold text-brand-black/35 tracking-wider mb-1">Plan de Promoción</span>
+                            <p className="text-brand-black/70 leading-relaxed line-clamp-2">{app.promotionPlan}</p>
+                          </div>
+                        )}
+                        {app.couponCode && (
+                          <div>
+                            <span className="block text-[9px] uppercase font-bold text-brand-black/35 tracking-wider mb-1">Código Asignado</span>
+                            <span className="font-mono font-black text-brand-green-dark">{app.couponCode}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      {app.status === 'pendiente' && (
+                        <div className="px-5 pb-4 flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => reviewAffiliateApplication(app.id, true)}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-brand-green-dark hover:bg-brand-black text-brand-white text-xs font-bold rounded-luxury cursor-pointer transition-all"
+                          >
+                            <CheckCircle2 size={13} /> Aprobar y Activar
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`¿Rechazar la solicitud de ${app.fullName}?`))
+                                reviewAffiliateApplication(app.id, false);
+                            }}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-transparent hover:bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-luxury cursor-pointer transition-all"
+                          >
+                            <XCircle size={13} /> Rechazar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Afiliados Activos ── */}
+            <div className="space-y-4">
+              <div className="bg-brand-white p-4 rounded-luxury border border-brand-black/5 shadow-sm text-xs font-bold text-brand-black/60">
+                <span>Afiliados Activos ({affiliateProfiles.length})</span>
+              </div>
+
+              {affiliateProfiles.length === 0 ? (
+                <p className="text-xs italic text-brand-black/40 text-center py-6">No hay afiliados activos todavía.</p>
+              ) : (
+                <div className="bg-brand-white border border-brand-black/5 rounded-luxury divide-y divide-brand-black/5 overflow-hidden">
+                  {affiliateProfiles.map(aff => {
+                    const user = registeredUsers.find(u => u.id === aff.userId);
+                    return (
+                      <div key={aff.userId} className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 text-xs">
+                        <div className="space-y-0.5">
+                          <span className="block font-bold text-brand-black">{user?.fullName || aff.userId.slice(0, 8)}</span>
+                          <span className="font-mono font-black text-brand-green-dark text-sm">{aff.couponCode}</span>
+                          <span className="block text-[10px] text-brand-black/40">{user?.email}</span>
+                        </div>
+                        <div className="flex gap-6 text-center">
+                          <div>
+                            <span className="block font-black text-brand-black text-base">{aff.referredSales}</span>
+                            <span className="block text-[9px] text-brand-black/40 uppercase tracking-wide">Ventas</span>
+                          </div>
+                          <div>
+                            <span className="block font-black text-brand-black text-base">{aff.clicksCount}</span>
+                            <span className="block text-[9px] text-brand-black/40 uppercase tracking-wide">Clics</span>
+                          </div>
+                          <div>
+                            <span className="block font-black text-brand-green-dark text-base">${aff.commissionEarned.toFixed(2)}</span>
+                            <span className="block text-[9px] text-brand-black/40 uppercase tracking-wide">Comisión</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ====================================================================
+            PESTAÑA 6: GESTIÓN DE CUPONES
             ==================================================================== */}
         {activeTab === 'coupons' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left">
@@ -587,34 +733,51 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="bg-brand-white border border-brand-black/5 rounded-luxury divide-y divide-brand-black/5 overflow-hidden">
-                {coupons.map((c: Coupon) => (
-                  <div key={c.code} className="p-4 sm:p-5 flex justify-between items-center text-xs">
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-black text-brand-green-dark tracking-wide">{c.code}</span>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wide bg-brand-green-light text-brand-black px-2 py-0.5 rounded">
-                          -{c.discountPercentage}% DTO
-                        </span>
+                {coupons.length === 0 && (
+                  <p className="text-xs italic text-brand-black/40 text-center py-8">No hay cupones creados aún.</p>
+                )}
+                {coupons.map((c: Coupon) => {
+                  const isExpired = c.expiresAt ? new Date(c.expiresAt) < new Date() : false;
+                  const isMaxed   = c.maxUses && c.maxUses > 0 ? c.usageCount >= c.maxUses : false;
+                  return (
+                    <div key={c.code} className="p-4 sm:p-5 flex flex-wrap justify-between items-center gap-4 text-xs">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-sm font-black text-brand-green-dark tracking-wide">{c.code}</span>
+                          <span className="text-[10px] font-extrabold uppercase tracking-wide bg-brand-green-light text-brand-black px-2 py-0.5 rounded">
+                            -{c.discountPercentage}% DTO
+                          </span>
+                          {isExpired && <span className="text-[9px] font-bold text-red-500 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">Expirado</span>}
+                          {isMaxed   && <span className="text-[9px] font-bold text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">Límite alcanzado</span>}
+                        </div>
+                        <div className="flex gap-3 text-[10px] text-brand-black/40 font-semibold flex-wrap">
+                          <span>{c.affiliateId ? `Afiliado: ${c.affiliateId.slice(0,8)}…` : 'Cupón General'}</span>
+                          <span>{c.usageCount} uso{c.usageCount !== 1 ? 's' : ''}{c.maxUses ? ` / ${c.maxUses} máx` : ''}</span>
+                          {c.expiresAt && (
+                            <span>Expira: {new Date(c.expiresAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-[10px] text-brand-black/40 font-semibold block uppercase">
-                        {c.affiliateId ? `Referencia Afiliado: ${c.affiliateId}` : 'Cupón General de Plataforma'}
-                      </span>
-                    </div>
 
-                    <div className="text-right">
-                      <span className="block font-bold text-brand-black">{c.usageCount} usos en pagos</span>
-                      <span className={`px-2 py-0.5 text-[8px] font-extrabold uppercase rounded-full border mt-1 inline-block ${
-                        c.isActive 
-                          ? 'bg-brand-green-dark/15 text-brand-green-dark border-brand-green-dark/20' 
-                          : 'bg-brand-gray-soft text-brand-black/30'
-                      }`}>
-                        {c.isActive ? 'Activo' : 'Vencido'}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-2 py-0.5 text-[8px] font-extrabold uppercase rounded-full border ${
+                          c.isActive
+                            ? 'bg-brand-green-dark/15 text-brand-green-dark border-brand-green-dark/20'
+                            : 'bg-brand-gray-soft text-brand-black/30 border-brand-black/10'
+                        }`}>
+                          {c.isActive ? 'Activo' : 'Inactivo'}
+                        </span>
+                        <button
+                          onClick={() => toggleCouponStatus(c.code, !c.isActive)}
+                          title={c.isActive ? 'Desactivar cupón' : 'Activar cupón'}
+                          className="text-brand-black/40 hover:text-brand-green-dark transition-colors cursor-pointer"
+                        >
+                          {c.isActive ? <ToggleRight size={22} className="text-brand-green-dark" /> : <ToggleLeft size={22} />}
+                        </button>
+                      </div>
                     </div>
-
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -1369,26 +1532,38 @@ const ProductEditWizard: React.FC<{
 // ============================================================================
 const CouponAddForm: React.FC = () => {
   const { addCoupon } = useApp();
-  const [code, setCode] = useState('');
-  const [discount, setDiscount] = useState('10');
-  const [success, setSuccess] = useState(false);
+  const [code,      setCode]      = useState('');
+  const [discount,  setDiscount]  = useState('10');
+  const [maxUses,   setMaxUses]   = useState('0');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [success,   setSuccess]   = useState(false);
+  const [loading,   setLoading]   = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code) return;
+    setLoading(true);
 
     await addCoupon({
-      code: code.trim().toUpperCase(),
+      code:               code.trim().toUpperCase(),
       discountPercentage: Number(discount),
-      isActive: true,
-      usageCount: 0
+      isActive:           true,
+      usageCount:         0,
+      maxUses:            Number(maxUses),
+      expiresAt:          expiresAt ? new Date(expiresAt).toISOString() : undefined
     });
 
     setCode('');
     setDiscount('10');
+    setMaxUses('0');
+    setExpiresAt('');
+    setLoading(false);
     setSuccess(true);
     setTimeout(() => setSuccess(false), 3000);
   };
+
+  const fieldClass = "w-full px-3 py-2.5 bg-brand-white border border-brand-black/10 rounded-luxury text-sm outline-none focus:border-brand-green-dark transition-all";
+  const labelClass = "block text-[10px] font-semibold uppercase tracking-wider text-brand-black/60 mb-1";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-left">
@@ -1396,32 +1571,59 @@ const CouponAddForm: React.FC = () => {
         <span className="block text-[10px] text-brand-green-dark font-bold">🎉 ¡Cupón creado exitosamente!</span>
       )}
 
-      <Input
-        label="Código del Cupón"
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        placeholder="VERANO25"
-        required
-      />
+      <div>
+        <label className={labelClass}>Código del Cupón *</label>
+        <input
+          value={code}
+          onChange={e => setCode(e.target.value.toUpperCase())}
+          placeholder="VERANO25"
+          required
+          className={fieldClass}
+        />
+      </div>
 
-      <Input
-        label="Porcentaje de Descuento (%)"
-        type="number"
-        min="5"
-        max="80"
-        value={discount}
-        onChange={(e) => setDiscount(e.target.value)}
-        placeholder="10"
-        required
-      />
+      <div>
+        <label className={labelClass}>Descuento (%)</label>
+        <input
+          type="number"
+          min="1"
+          max="80"
+          value={discount}
+          onChange={e => setDiscount(e.target.value)}
+          className={fieldClass}
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>Máximo de Usos <span className="normal-case font-normal text-brand-black/30">(0 = ilimitado)</span></label>
+        <input
+          type="number"
+          min="0"
+          value={maxUses}
+          onChange={e => setMaxUses(e.target.value)}
+          className={fieldClass}
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>Fecha de Expiración <span className="normal-case font-normal text-brand-black/30">(opcional)</span></label>
+        <input
+          type="date"
+          value={expiresAt}
+          onChange={e => setExpiresAt(e.target.value)}
+          min={new Date().toISOString().split('T')[0]}
+          className={fieldClass}
+        />
+      </div>
 
       <Button
         type="submit"
         variant="secondary"
         fullWidth
+        disabled={loading}
         className="py-2.5 text-xs"
       >
-        Crear Cupón
+        {loading ? 'Guardando...' : 'Crear Cupón'}
       </Button>
     </form>
   );

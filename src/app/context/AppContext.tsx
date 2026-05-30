@@ -54,6 +54,8 @@ export interface Coupon {
   affiliateId?: string; // Links to affiliate for commission
   isActive: boolean;
   usageCount: number;
+  expiresAt?: string;  // ISO date string, optional
+  maxUses?: number;    // 0 = unlimited
 }
 
 export interface OrderItem {
@@ -95,6 +97,22 @@ export interface SupplierApplication {
   status: 'pending' | 'approved' | 'rejected';
   verificationNotes?: string;
   createdAt: string;
+}
+
+export interface AffiliateApplication {
+  id: string;
+  userId?: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  platform: string;
+  handle: string;
+  followersCount: string;
+  whyAffiliate: string;
+  promotionPlan: string;
+  status: 'pendiente' | 'aprobado' | 'rechazado';
+  createdAt: string;
+  couponCode?: string;
 }
 
 export interface MPPaymentResult {
@@ -233,6 +251,12 @@ interface AppContextType {
   updateAffiliateClicks: (couponCode: string) => void;
   requestPayout: (userId: string) => void;
   addCoupon: (coupon: Coupon) => Promise<void>;
+  toggleCouponStatus: (code: string, isActive: boolean) => Promise<void>;
+
+  // Affiliate Applications
+  affiliateApplications: AffiliateApplication[];
+  submitAffiliateApplication: (data: Omit<AffiliateApplication, 'id' | 'status' | 'createdAt' | 'couponCode'>) => Promise<{ success: boolean; error?: string }>;
+  reviewAffiliateApplication: (id: string, approve: boolean) => Promise<void>;
 
   // Customization & Banners
   featuredBanner: {
@@ -265,6 +289,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [orders, setOrders] = useState<Order[]>([]);
   const [supplierApplications, setSupplierApplications] = useState<SupplierApplication[]>([]);
   const [affiliateProfiles, setAffiliateProfiles] = useState<AffiliateProfile[]>([]);
+  const [affiliateApplications, setAffiliateApplications] = useState<AffiliateApplication[]>([]);
   const [mpPayment, setMpPayment] = useState<MPPaymentResult | null>(null);
   // DB setup flag: true when Supabase tables lack GRANT permissions
   const [dbSetupRequired, setDbSetupRequired] = useState(false);
@@ -438,7 +463,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         discountPercentage: c.discount_percentage,
         affiliateId: c.affiliate_id || undefined,
         isActive: c.is_active,
-        usageCount: c.usage_count
+        usageCount: c.usage_count,
+        expiresAt: c.expires_at || undefined,
+        maxUses: c.max_uses ?? 0
+      })));
+    }
+  };
+
+  const fetchAffiliateApplications = async () => {
+    const { data } = await supabase
+      .from('affiliate_applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) {
+      setAffiliateApplications(data.map(a => ({
+        id: a.id,
+        userId: a.user_id || undefined,
+        fullName: a.full_name,
+        email: a.email,
+        phone: a.phone || undefined,
+        platform: a.platform || '',
+        handle: a.handle || '',
+        followersCount: a.followers_count || '',
+        whyAffiliate: a.why_affiliate || '',
+        promotionPlan: a.promotion_plan || '',
+        status: a.status as AffiliateApplication['status'],
+        createdAt: a.created_at,
+        couponCode: a.coupon_code || undefined
       })));
     }
   };
@@ -689,6 +740,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         fetchOrders();
         fetchSupplierApplications();
         fetchAffiliateProfiles();
+        fetchAffiliateApplications();
       } else {
         fetchOrders(currentUser.id);
       }
@@ -982,16 +1034,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Coupon System (Persisted to Supabase)
   const applyCouponCode = (code: string) => {
     const cleanCode = code.trim().toUpperCase();
-    const coupon = coupons.find(c => c.code === cleanCode && c.isActive);
-    
-    if (coupon) {
-      setAppliedCoupon(coupon);
-      if (coupon.affiliateId) {
-        updateAffiliateClicks(coupon.code);
-      }
-      return { success: true, discountPercentage: coupon.discountPercentage };
+    const coupon = coupons.find(c => c.code === cleanCode);
+
+    if (!coupon) return { success: false, error: 'Código de cupón no encontrado.' };
+    if (!coupon.isActive) return { success: false, error: 'Este cupón está desactivado.' };
+    if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+      return { success: false, error: 'Este cupón ha expirado.' };
     }
-    return { success: false, error: 'Código de cupón inválido o vencido.' };
+    if (coupon.maxUses && coupon.maxUses > 0 && coupon.usageCount >= coupon.maxUses) {
+      return { success: false, error: 'Este cupón ha alcanzado su límite de usos.' };
+    }
+
+    setAppliedCoupon(coupon);
+    if (coupon.affiliateId) {
+      updateAffiliateClicks(coupon.code);
+    }
+    return { success: true, discountPercentage: coupon.discountPercentage };
   };
 
   const removeCoupon = () => {
@@ -1021,7 +1079,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         discount_percentage: coupon.discountPercentage,
         affiliate_id: coupon.affiliateId || null,
         is_active: coupon.isActive,
-        usage_count: coupon.usageCount
+        usage_count: coupon.usageCount,
+        expires_at: coupon.expiresAt || null,
+        max_uses: coupon.maxUses ?? 0
       });
       if (error) {
         alert("Error al registrar cupón: " + error.message);
@@ -1030,6 +1090,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (err: any) {
       alert("Excepción al crear cupón: " + err.message);
+    }
+  };
+
+  const toggleCouponStatus = async (code: string, isActive: boolean) => {
+    try {
+      await supabase.from('coupons').update({ is_active: isActive }).eq('code', code);
+      fetchCoupons();
+    } catch (err: any) {
+      alert("Error al cambiar estado del cupón: " + err.message);
     }
   };
 
@@ -1172,7 +1241,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Handle Affiliate commission
       if (appliedCoupon && appliedCoupon.affiliateId) {
-        const commissionEarned = parseFloat((total * 0.15).toFixed(2));
+        const commissionEarned = parseFloat((total * 0.05).toFixed(2));
         const { data: aff } = await supabase.from('affiliates').select('*').eq('user_id', appliedCoupon.affiliateId).maybeSingle();
         if (aff) {
           await supabase.from('affiliates').update({
@@ -1277,7 +1346,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Handle affiliate commission if applicable
       if (appliedCoupon?.affiliateId) {
         const { total } = getCartTotals();
-        const commissionEarned = parseFloat((total * 0.15).toFixed(2));
+        const commissionEarned = parseFloat((total * 0.05).toFixed(2));
         const { data: aff } = await supabase.from('affiliates').select('*').eq('user_id', appliedCoupon.affiliateId).maybeSingle();
         if (aff) {
           await supabase.from('affiliates').update({
@@ -1346,6 +1415,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       fetchSupplierApplications();
     } catch (err: any) {
       alert('Excepción al evaluar solicitud: ' + err.message);
+    }
+  };
+
+  // ── Affiliate Application System ────────────────────────────────────────────
+
+  const submitAffiliateApplication = async (
+    data: Omit<AffiliateApplication, 'id' | 'status' | 'createdAt' | 'couponCode'>
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error } = await supabase.from('affiliate_applications').insert({
+        user_id: currentUser?.id || null,
+        full_name: data.fullName,
+        email: data.email,
+        phone: data.phone || null,
+        platform: data.platform,
+        handle: data.handle,
+        followers_count: data.followersCount,
+        why_affiliate: data.whyAffiliate,
+        promotion_plan: data.promotionPlan,
+        status: 'pendiente'
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Error al enviar solicitud.' };
+    }
+  };
+
+  const reviewAffiliateApplication = async (id: string, approve: boolean) => {
+    try {
+      const app = affiliateApplications.find(a => a.id === id);
+      if (!app) return;
+
+      const status = approve ? 'aprobado' : 'rechazado';
+
+      if (approve) {
+        // Generate unique coupon code from applicant name
+        const baseName = app.fullName.split(' ')[0].toUpperCase().slice(0, 8).replace(/[^A-Z]/g, '');
+        const couponCode = `${baseName}${Math.floor(Math.random() * 90 + 10)}`;
+
+        // Update application
+        await supabase.from('affiliate_applications').update({ status, coupon_code: couponCode }).eq('id', id);
+
+        // Elevate user role and create affiliate profile if user_id exists
+        if (app.userId) {
+          await supabase.from('users').update({ role: 'affiliate' }).eq('id', app.userId);
+
+          // Create/upsert affiliate record
+          await supabase.from('affiliates').upsert({
+            user_id: app.userId,
+            coupon_code: couponCode,
+            commission_earned: 0,
+            clicks_count: 0,
+            referred_sales: 0
+          });
+
+          // Create coupon in coupons table (5% to customer, affiliate-linked)
+          await supabase.from('coupons').insert({
+            code: couponCode,
+            discount_percentage: 10,
+            affiliate_id: app.userId,
+            is_active: true,
+            usage_count: 0,
+            max_uses: 0
+          });
+        }
+      } else {
+        await supabase.from('affiliate_applications').update({ status }).eq('id', id);
+      }
+
+      await fetchAffiliateApplications();
+      fetchAffiliateProfiles();
+      fetchUsers();
+      fetchCoupons();
+    } catch (err: any) {
+      alert('Error al revisar solicitud: ' + err.message);
     }
   };
 
@@ -1454,6 +1599,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateAffiliateClicks,
       requestPayout,
       addCoupon,
+      toggleCouponStatus,
+
+      affiliateApplications,
+      submitAffiliateApplication,
+      reviewAffiliateApplication,
 
       featuredBanner,
       setFeaturedBanner

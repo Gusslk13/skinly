@@ -61,7 +61,7 @@ export const AffiliateDashboard: React.FC = () => {
             ${affProfile.commissionEarned.toFixed(2)}
           </span>
           <span className="text-[9px] font-bold text-brand-green-dark bg-brand-green-dark/10 px-2 py-0.5 rounded-full uppercase tracking-wider block w-fit">
-            Tasa base 15%
+            Tasa base 5%
           </span>
         </div>
 
@@ -137,7 +137,7 @@ export const AffiliateDashboard: React.FC = () => {
                   {affProfile.couponCode}
                 </h3>
                 <p className="text-[11px] text-brand-white/70 leading-relaxed font-semibold">
-                  Ofrece a tus clientes <strong>10% de descuento</strong> en su pedido, y recibe <strong>15% de comisión</strong> sobre el total pagado.
+                  Ofrece a tus clientes <strong>10% de descuento</strong> en su pedido, y recibe <strong>5% de comisión</strong> sobre el total pagado.
                 </p>
               </div>
 

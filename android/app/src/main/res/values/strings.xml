@@ -4,4 +4,6 @@
     <string name="title_activity_main">SKINLY</string>
     <string name="package_name">com.skinly.app</string>
     <string name="custom_url_scheme">com.skinly.app</string>
+    <!-- Google Sign-In: Web OAuth client ID from Google Cloud Console -->
+    <string name="server_client_id">707382874829-ri1sldhabes6hrh60rp3m63kd3v2pp2u.apps.googleusercontent.com</string>
 </resources>

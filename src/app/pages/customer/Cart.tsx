@@ -274,7 +274,7 @@ export const Cart: React.FC = () => {
                 )}
 
                 <p className="text-[10px] text-brand-black/40 leading-relaxed font-semibold pt-1">
-                  💡 Pista: Ingresa <strong className="text-brand-green-dark font-mono">LUPITA10</strong> para obtener <strong>10% de descuento</strong> y acreditar los clicks de Lupita. O <strong className="font-mono">WELCOME15</strong> para <strong>15% de descuento</strong>.
+                  💡 ¿Tienes un código de embajador o promoción? Ingrésalo aquí para aplicar tu descuento.
                 </p>
               </form>
             )}

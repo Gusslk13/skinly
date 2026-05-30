@@ -203,7 +203,7 @@ export const Profile: React.FC = () => {
               <div className="space-y-1.5 text-left">
                 <h4 className="font-heading text-base font-bold">Gana comisiones y comparte ingredientes</h4>
                 <p className="text-[11px] text-brand-white/70 leading-relaxed">
-                  Únete a nuestra red de afiliados para ganar <strong>15% en comisiones</strong> por referidos, o aplica para convertirte en proveedor botánico certificado.
+                  Únete a nuestra red de afiliados para ganar <strong>5% en comisiones</strong> por referidos, o aplica para convertirte en proveedor botánico certificado.
                 </p>
               </div>
               <div className="flex gap-2">

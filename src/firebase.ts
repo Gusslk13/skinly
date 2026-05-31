@@ -17,5 +17,5 @@ export let messaging: ReturnType<typeof getMessaging> | null = null;
 try {
   messaging = getMessaging(firebaseApp);
 } catch {
-  // Entorno sin soporte de SW — se usa Capacitor PushNotifications en su lugar
+  // Entorno sin soporte de SW (p.ej. SSR) — FCM no disponible
 }

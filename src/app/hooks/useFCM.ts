@@ -1,10 +1,12 @@
 /**
  * useFCM — Hook que:
- * 1. Detecta si corre en Capacitor nativo (Android) o en navegador web.
- * 2. Solicita permiso de notificaciones.
- * 3. Obtiene el FCM token.
- * 4. Guarda el token en la columna users.fcm_token de Supabase.
- * 5. Maneja mensajes en foreground (browser).
+ * 1. Solicita permiso de notificaciones (solo en entorno web/PWA).
+ * 2. Obtiene el FCM token via Web Push (VAPID).
+ * 3. Guarda el token en la columna users.fcm_token de Supabase.
+ * 4. Maneja mensajes en foreground (browser).
+ *
+ * Las notificaciones en background (app cerrada) las maneja firebase-messaging-sw.js.
+ * En Android nativo se usa el service worker a través del WebView de Capacitor.
  *
  * Se activa automáticamente cuando currentUser cambia (login/logout).
  */
@@ -14,15 +16,6 @@ import { useApp } from '../context/AppContext';
 import { supabase } from '../../supabase';
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY ?? '';
-
-// Detección segura de Capacitor sin importar el paquete (evita error en web)
-const isCapacitorNative = (): boolean => {
-  try {
-    return (window as any).Capacitor?.isNativePlatform?.() === true;
-  } catch {
-    return false;
-  }
-};
 
 // Persiste el token FCM en la tabla users
 const saveToken = async (userId: string, token: string): Promise<void> => {
@@ -34,12 +27,12 @@ const saveToken = async (userId: string, token: string): Promise<void> => {
   }
 };
 
-// ── Web FCM (Chrome/Firefox desktop y Android web) ───────────────────────────
+// ── Web FCM (funciona tanto en browser como en WebView de Capacitor) ──────────
 async function setupWebFCM(userId: string): Promise<void> {
   try {
-    if (!('Notification' in window))       return console.warn('[FCM] Notifications API no disponible.');
-    if (!('serviceWorker' in navigator))   return console.warn('[FCM] ServiceWorker no disponible.');
-    if (!VAPID_KEY)                        return console.warn('[FCM] VITE_FIREBASE_VAPID_KEY no configurado. Revisa .env');
+    if (!('Notification' in window))     return console.warn('[FCM] Notifications API no disponible.');
+    if (!('serviceWorker' in navigator)) return console.warn('[FCM] ServiceWorker no disponible.');
+    if (!VAPID_KEY)                      return console.warn('[FCM] VITE_FIREBASE_VAPID_KEY no configurado.');
 
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
@@ -47,7 +40,7 @@ async function setupWebFCM(userId: string): Promise<void> {
       return;
     }
 
-    // Registrar el service worker de Firebase (si no está ya registrado)
+    // Registrar el service worker de Firebase
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
 
     // Import dinámico para no cargar Firebase en entornos no compatibles
@@ -71,51 +64,11 @@ async function setupWebFCM(userId: string): Promise<void> {
     onMessage(messaging, (payload) => {
       const { title = 'Skinly', body = '' } = payload.notification || {};
       if (Notification.permission === 'granted') {
-        new Notification(title, {
-          body,
-          icon: '/images/logo.png',
-        });
+        new Notification(title, { body, icon: '/images/logo.png' });
       }
     });
   } catch (e) {
     console.warn('[FCM Web] Error durante setup:', e);
-  }
-}
-
-// ── Capacitor nativo (Android APK) ───────────────────────────────────────────
-async function setupCapacitorPush(userId: string): Promise<void> {
-  try {
-    const { PushNotifications } = await import('@capacitor/push-notifications');
-
-    const perm = await PushNotifications.requestPermissions();
-    if (perm.receive !== 'granted') {
-      console.log('[FCM Capacitor] Permiso denegado.');
-      return;
-    }
-
-    await PushNotifications.register();
-
-    // Token FCM nativo
-    await PushNotifications.addListener('registration', async ({ value }) => {
-      console.log('[FCM Capacitor] Token obtenido:', value.slice(0, 20) + '…');
-      await saveToken(userId, value);
-    });
-
-    await PushNotifications.addListener('registrationError', (err) => {
-      console.error('[FCM Capacitor] Error de registro:', JSON.stringify(err));
-    });
-
-    // Notificación recibida con la app en primer plano
-    await PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('[FCM Capacitor] Notificación foreground:', notification.title);
-    });
-
-    // El usuario tocó la notificación
-    await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('[FCM Capacitor] Notificación tocada:', action.notification.title);
-    });
-  } catch (e) {
-    console.warn('[FCM Capacitor] Error durante setup:', e);
   }
 }
 
@@ -125,11 +78,6 @@ export const useFCM = (): void => {
 
   useEffect(() => {
     if (!currentUser?.id) return;
-
-    if (isCapacitorNative()) {
-      setupCapacitorPush(currentUser.id);
-    } else {
-      setupWebFCM(currentUser.id);
-    }
+    setupWebFCM(currentUser.id);
   }, [currentUser?.id]);
 };

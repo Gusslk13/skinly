@@ -198,13 +198,14 @@ export const Header: React.FC = () => {
           className="md:hidden absolute top-full inset-x-0 bg-brand-white border-b border-brand-black/5 shadow-xl animate-fade-in z-50"
         >
           <nav className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-1">
+            {/* Siempre visibles */}
             <MobileNavLink label="Inicio" active={currentView === 'home'} onClick={() => nav('home')} />
             <MobileNavLink label="Tienda" active={currentView === 'categories'} onClick={() => nav('categories')} />
-            <MobileNavLink label="Programa de Afiliados" active={currentView === 'affiliate-program'} onClick={() => nav('affiliate-program')} />
+            <MobileNavLink label="Afiliados" active={currentView === 'affiliate-program'} onClick={() => nav('affiliate-program')} />
             <MobileNavLink label="Mi Cuenta" active={currentView === 'profile'} onClick={() => nav('profile')} />
-            <MobileNavLink label="Favoritos" active={currentView === 'favorites'} onClick={() => nav('favorites')} />
             <MobileNavLink label="Mis Pedidos" active={currentView === 'order-history'} onClick={() => nav('order-history')} />
 
+            {/* Solo si el usuario tiene el rol correspondiente */}
             {currentUser?.role === 'admin' && (
               <MobileNavLink label="Panel Admin" active={currentView === 'admin-dashboard'} onClick={() => nav('admin-dashboard')} accent="green" />
             )}

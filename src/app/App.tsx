@@ -1,4 +1,5 @@
 import React from 'react';
+import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header, MobileNavBar, Footer } from './components/Layout';
 import { DevRoleSwitcher } from './components/UI';
@@ -107,8 +108,14 @@ const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <PayPalScriptProvider options={{
+      clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID ?? '',
+      currency: 'USD',
+      intent: 'capture',
+    }}>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </PayPalScriptProvider>
   );
 }

@@ -6,7 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     url: 'https://skinly-zeta.vercel.app',
-    cleartext: false
+    cleartext: false,
+    androidScheme: 'https',
   },
 };
 

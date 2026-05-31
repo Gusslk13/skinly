@@ -9,6 +9,8 @@ const config: CapacitorConfig = {
     cleartext: false,
     androidScheme: 'https',
   },
+  // Custom URL scheme for OAuth deep links (e.g. skinly://auth/callback)
+  appUrlScheme: 'skinly',
 };
 
 export default config;

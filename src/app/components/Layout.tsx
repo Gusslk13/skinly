@@ -35,27 +35,14 @@ export const Header: React.FC = () => {
   // Close menu when route changes
   useEffect(() => { setMobileOpen(false); }, [currentView]);
 
-  // Ocultar/mostrar widget de Tawk.to según la vista actual
+  // Ocultar/mostrar widget de Tawk.to según la vista actual.
+  // El widget arranca oculto (ver index.html onLoad); aquí solo lo mostramos
+  // cuando el usuario llega a una vista pública.
   useEffect(() => {
-    const hideChatOnLoad = () => {
-      if (HIDDEN_CHAT_VIEWS.includes(currentView)) {
-        window.Tawk_API?.hideWidget?.();
-      } else {
-        window.Tawk_API?.showWidget?.();
-      }
-    };
-
-    if (window.Tawk_API?.hideWidget) {
-      // Widget ya cargó → aplicar de inmediato
-      hideChatOnLoad();
+    if (HIDDEN_CHAT_VIEWS.includes(currentView)) {
+      window.Tawk_API?.hideWidget?.();
     } else {
-      // Widget aún no cargó → encadenar en onLoad sin perder callbacks previos
-      window.Tawk_API = window.Tawk_API || {};
-      const originalOnLoad = window.Tawk_API.onLoad;
-      window.Tawk_API.onLoad = function () {
-        originalOnLoad?.();
-        hideChatOnLoad();
-      };
+      window.Tawk_API?.showWidget?.();
     }
   }, [currentView]);
 

@@ -2,6 +2,47 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { sendNotification } from '../../lib/sendNotification';
 
+/**
+ * Normaliza el campo `ingredients` que puede llegar de Supabase en varios formatos:
+ *  - Array normal:               ["Aceite", "Agua"]          → usa directo
+ *  - Array con strings escapados: ["\"Aceite\"", "\"Agua\""] → limpia comillas
+ *  - JSON string:                "[\"Aceite\",\"Agua\"]"     → parsea y limpia
+ *  - String CSV:                 "Aceite, Agua, Glicerina"   → split por coma
+ *  - null / undefined            → []
+ */
+function parseIngredients(raw: unknown): string[] {
+  if (!raw) return [];
+
+  // Ya es un array — limpiar cada elemento de comillas/corchetes residuales
+  if (Array.isArray(raw)) {
+    return raw
+      .map((s: unknown) => String(s).replace(/^["\s\[]+|["\s\]]+$/g, '').trim())
+      .filter(Boolean);
+  }
+
+  const str = String(raw).trim();
+  if (!str) return [];
+
+  // Intenta parsear como JSON
+  if (str.startsWith('[') || str.startsWith('"')) {
+    try {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((s: unknown) => String(s).replace(/^["\s\[]+|["\s\]]+$/g, '').trim())
+          .filter(Boolean);
+      }
+      // Era un string JSON simple → usarlo tal cual limpio
+      return [String(parsed).trim()].filter(Boolean);
+    } catch {
+      // JSON inválido → caer al split
+    }
+  }
+
+  // String CSV simple
+  return str.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -402,9 +443,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: p.id,
         name: p.name,
         description: p.description || '',
-        ingredients: Array.isArray(p.ingredients)
-          ? p.ingredients
-          : (p.ingredients ? String(p.ingredients).split(',').map((s: string) => s.trim()).filter(Boolean) : []),
+        ingredients: parseIngredients(p.ingredients),
         category: p.categories?.name || 'Serums',
         price: parseFloat(p.price),
         discountPrice: p.discount_price ? parseFloat(p.discount_price) : undefined,
@@ -546,9 +585,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           id: item.products.id,
           name: item.products.name,
           description: item.products.description || '',
-          ingredients: Array.isArray(item.products.ingredients)
-            ? item.products.ingredients
-            : (item.products.ingredients ? String(item.products.ingredients).split(',').map((s: string) => s.trim()).filter(Boolean) : []),
+          ingredients: parseIngredients(item.products.ingredients),
           category: item.products.categories?.name || 'Serums',
           price: parseFloat(item.products.price),
           discountPrice: item.products.discount_price ? parseFloat(item.products.discount_price) : undefined,

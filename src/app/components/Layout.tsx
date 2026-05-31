@@ -35,24 +35,27 @@ export const Header: React.FC = () => {
   // Close menu when route changes
   useEffect(() => { setMobileOpen(false); }, [currentView]);
 
-  // Ocultar/mostrar widget de Tawk.to según si estamos en el panel admin
+  // Ocultar/mostrar widget de Tawk.to según la vista actual
   useEffect(() => {
-    const isAdmin = HIDDEN_CHAT_VIEWS.includes(currentView);
-
-    const apply = () => {
-      if (isAdmin) {
+    const hideChatOnLoad = () => {
+      if (HIDDEN_CHAT_VIEWS.includes(currentView)) {
         window.Tawk_API?.hideWidget?.();
       } else {
         window.Tawk_API?.showWidget?.();
       }
     };
 
-    // Si el widget ya cargó, aplicar de inmediato
-    apply();
-
-    // Si todavía no cargó, registrar callback onLoad para cuando termine
-    if (window.Tawk_API && !window.Tawk_API.hideWidget) {
-      window.Tawk_API.onLoad = apply;
+    if (window.Tawk_API?.hideWidget) {
+      // Widget ya cargó → aplicar de inmediato
+      hideChatOnLoad();
+    } else {
+      // Widget aún no cargó → encadenar en onLoad sin perder callbacks previos
+      window.Tawk_API = window.Tawk_API || {};
+      const originalOnLoad = window.Tawk_API.onLoad;
+      window.Tawk_API.onLoad = function () {
+        originalOnLoad?.();
+        hideChatOnLoad();
+      };
     }
   }, [currentView]);
 

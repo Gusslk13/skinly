@@ -43,7 +43,7 @@ export const AffiliateDashboard: React.FC = () => {
       
       {/* Encabezado */}
       <div className="space-y-2">
-        <h1 className="font-heading text-3xl font-bold text-brand-black">Panel de Embajador Afiliado</h1>
+        <h1 className="font-heading text-3xl font-bold text-brand-black">Panel de Afiliado</h1>
         <p className="text-xs text-brand-black/40 font-medium">Rastrea ventas referidas, revisa comisiones y solicita pagos.</p>
       </div>
 
@@ -122,7 +122,7 @@ export const AffiliateDashboard: React.FC = () => {
           {/* Tarjeta de activos de marketing */}
           <div className="bg-brand-white p-6 sm:p-8 rounded-luxury border border-brand-black/5 shadow-sm space-y-6">
             <h2 className="font-heading text-xl font-bold text-brand-black border-b border-brand-black/5 pb-3">
-              Activos de Marketing del Embajador
+              Activos de Marketing del Afiliado
             </h2>
 
             {/* Visualización del código de cupón activo */}

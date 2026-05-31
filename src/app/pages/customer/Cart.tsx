@@ -274,7 +274,7 @@ export const Cart: React.FC = () => {
                 )}
 
                 <p className="text-[10px] text-brand-black/40 leading-relaxed font-semibold pt-1">
-                  💡 ¿Tienes un código de embajador o promoción? Ingrésalo aquí para aplicar tu descuento.
+                  💡 ¿Tienes un código de afiliado o promoción? Ingrésalo aquí para aplicar tu descuento.
                 </p>
               </form>
             )}

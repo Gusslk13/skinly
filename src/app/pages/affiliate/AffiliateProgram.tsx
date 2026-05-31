@@ -90,7 +90,7 @@ export const AffiliateProgram: React.FC = () => {
     {
       icon: TrendingUp,
       title: 'Rastreo en Tiempo Real',
-      desc: 'Consulta tus métricas de clics, conversiones y comisiones acumuladas en tu panel de embajador.',
+      desc: 'Consulta tus métricas de clics, conversiones y comisiones acumuladas en tu panel de afiliado.',
       color: 'text-indigo-600', bg: 'bg-indigo-50',
     },
     {
@@ -111,7 +111,7 @@ export const AffiliateProgram: React.FC = () => {
     { num: '01', label: 'Aplica',   desc: 'Llena el formulario. Nuestro equipo lo revisa en 2–3 días hábiles.' },
     { num: '02', label: 'Actívate', desc: 'Recibes tu código único, enlace de rastreo y acceso al kit de marca.' },
     { num: '03', label: 'Comparte', desc: 'Publica en redes sociales, stories, blogs — tú decides el canal.' },
-    { num: '04', label: 'Cobra',    desc: 'Solicita tu pago desde el panel de embajador cuando acumules comisiones.' },
+    { num: '04', label: 'Cobra',    desc: 'Solicita tu pago desde el panel de afiliado cuando acumules comisiones.' },
   ];
 
   // ── Status card for users who already applied ─────────────────────────────
@@ -131,7 +131,7 @@ export const AffiliateProgram: React.FC = () => {
       <div className="flex items-start gap-4 p-6 bg-brand-green-dark/5 border border-brand-green-dark/20 rounded-luxury">
         <CheckCircle2 size={28} className="text-brand-green-dark shrink-0 mt-0.5" />
         <div className="space-y-2">
-          <h3 className="font-heading text-lg font-bold text-brand-green-dark">¡Eres Embajador Skinly!</h3>
+          <h3 className="font-heading text-lg font-bold text-brand-green-dark">¡Eres Afiliado Skinly!</h3>
           {existingCoupon && (
             <p className="text-xs text-brand-black/70 font-medium leading-relaxed">
               Tu código de referido es: <span className="font-mono font-extrabold text-brand-green-dark text-sm">{existingCoupon}</span>
@@ -168,7 +168,7 @@ export const AffiliateProgram: React.FC = () => {
         <div className="relative z-10 max-w-3xl mx-auto space-y-6">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-white/5 backdrop-blur-md rounded-full text-[10px] font-bold tracking-[0.18em] uppercase text-brand-green-light border border-brand-white/10">
             <Sparkles size={10} className="text-brand-green-light" />
-            Programa de Embajadores Skinly
+            Programa de Afiliados Skinly
           </span>
 
           <h1 className="font-heading text-4xl sm:text-6xl font-extrabold leading-tight tracking-wide text-brand-white">
@@ -214,7 +214,7 @@ export const AffiliateProgram: React.FC = () => {
       {/* BENEFICIOS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-10">
         <div className="text-center space-y-2">
-          <h2 className="font-heading text-3xl font-bold text-brand-black">¿Por qué ser embajador Skinly?</h2>
+          <h2 className="font-heading text-3xl font-bold text-brand-black">¿Por qué ser afiliado Skinly?</h2>
           <p className="text-xs text-brand-black/40 font-medium max-w-md mx-auto">
             Somos transparentes con nuestras comisiones. Sin límites de ganancias, sin fechas de vencimiento.
           </p>
@@ -370,7 +370,7 @@ export const AffiliateProgram: React.FC = () => {
 
                 {/* ¿Por qué quieres ser afiliado? */}
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-brand-black/60 mb-1.5">¿Por qué quieres ser embajador Skinly? *</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-brand-black/60 mb-1.5">¿Por qué quieres ser afiliado Skinly? *</label>
                   <textarea
                     value={whyAffiliate}
                     onChange={e => setWhyAffiliate(e.target.value)}

@@ -220,13 +220,13 @@ export const Home: React.FC = () => {
         <div className="bg-brand-white p-8 rounded-luxury border border-brand-black/5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1.5 text-left">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 block">
-              Embajadores Skinly
+              Afiliados Skinly
             </span>
             <h4 className="font-heading text-xl font-bold text-brand-black">
               ¿Tienes un cupón de referido?
             </h4>
             <p className="text-xs text-brand-black/50 font-medium">
-              Ingresa un cupón activo de embajador en tu Carrito para desbloquear{' '}
+              Ingresa un cupón activo de afiliado en tu Carrito para desbloquear{' '}
               <strong className="text-brand-black">10% DE DESCUENTO</strong> en tu compra.{' '}
               (Prueba <strong className="text-brand-green-dark font-mono">LUPITA10</strong>)
             </p>

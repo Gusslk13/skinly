@@ -47,7 +47,7 @@ export const Profile: React.FC = () => {
   const getRoleLabel = (role: string) => {
     const labels = {
       customer: 'Cliente Preferido',
-      affiliate: 'Embajador Afiliado',
+      affiliate: 'Afiliado Skinly',
       supplier: 'Proveedor de Laboratorio',
       admin: 'Administrador de Plataforma'
     };

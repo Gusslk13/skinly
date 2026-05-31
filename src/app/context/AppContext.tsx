@@ -479,7 +479,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAffiliateApplications(data.map(a => ({
         id: a.id,
         userId: a.user_id || undefined,
-        fullName: a.full_name,
+        fullName: a.name,
         email: a.email,
         phone: a.phone || undefined,
         platform: a.platform || '',
@@ -1426,7 +1426,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const { error } = await supabase.from('affiliate_applications').insert({
         user_id: currentUser?.id || null,
-        full_name: data.fullName,
+        name: data.fullName,
         email: data.email,
         phone: data.phone || null,
         platform: data.platform,

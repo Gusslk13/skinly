@@ -5,6 +5,20 @@ import {
   LogOut, ShieldCheck, Award, Package, Menu, X
 } from 'lucide-react';
 
+// Tipos globales para la API de Tawk.to inyectada vía script en index.html
+declare global {
+  interface Window {
+    Tawk_API?: {
+      hideWidget?: () => void;
+      showWidget?: () => void;
+      onLoad?: () => void;
+    };
+  }
+}
+
+// Vistas que corresponden al panel de administración
+const ADMIN_VIEWS = ['admin-dashboard'];
+
 // ============================================================================
 // ENCABEZADO PRINCIPAL DE LUJO
 // ============================================================================
@@ -20,6 +34,27 @@ export const Header: React.FC = () => {
 
   // Close menu when route changes
   useEffect(() => { setMobileOpen(false); }, [currentView]);
+
+  // Ocultar/mostrar widget de Tawk.to según si estamos en el panel admin
+  useEffect(() => {
+    const isAdmin = ADMIN_VIEWS.includes(currentView);
+
+    const apply = () => {
+      if (isAdmin) {
+        window.Tawk_API?.hideWidget?.();
+      } else {
+        window.Tawk_API?.showWidget?.();
+      }
+    };
+
+    // Si el widget ya cargó, aplicar de inmediato
+    apply();
+
+    // Si todavía no cargó, registrar callback onLoad para cuando termine
+    if (window.Tawk_API && !window.Tawk_API.hideWidget) {
+      window.Tawk_API.onLoad = apply;
+    }
+  }, [currentView]);
 
   // Close menu on outside click
   useEffect(() => {

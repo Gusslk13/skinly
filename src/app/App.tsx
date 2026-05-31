@@ -2,7 +2,6 @@ import React from 'react';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header, MobileNavBar, Footer } from './components/Layout';
-import { DevRoleSwitcher } from './components/UI';
 
 // Onboarding Pages
 import { SplashScreen } from './pages/onboarding/SplashScreen';
@@ -101,9 +100,6 @@ const AppContent: React.FC = () => {
 
       {/* Clean Premium Footer */}
       <Footer />
-
-      {/* Floating Developer Persona switcher (For prototype review) */}
-      <DevRoleSwitcher />
 
     </div>
   );

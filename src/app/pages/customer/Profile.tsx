@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {
-  const { currentUser, logout, switchRole, setView, registeredUsers, setCurrentUser } = useApp();
+  const { currentUser, logout, setView, registeredUsers, setCurrentUser } = useApp();
   
   const [fullName, setFullName] = useState(currentUser?.fullName || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
@@ -207,14 +207,14 @@ export const Profile: React.FC = () => {
                 </p>
               </div>
               <div className="flex gap-2">
-                <button 
-                  onClick={() => switchRole('affiliate')}
+                <button
+                  onClick={() => setView('affiliate-program')}
                   className="flex-1 py-2 bg-brand-white text-brand-black hover:bg-brand-green-light text-[10px] font-bold uppercase tracking-wider rounded-luxury transition-all cursor-pointer"
                 >
                   Ser Afiliado
                 </button>
-                <button 
-                  onClick={() => switchRole('supplier')}
+                <button
+                  onClick={() => setView('supplier-portal')}
                   className="flex-1 py-2 bg-brand-white/10 hover:bg-brand-white/20 text-brand-white text-[10px] font-bold uppercase tracking-wider rounded-luxury border border-brand-white/15 transition-all cursor-pointer"
                 >
                   Ser Proveedor

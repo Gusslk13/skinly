@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../../supabase';
+import { sendNotification } from '../../../lib/sendNotification';
 import {
   ShieldCheck, ChevronLeft, CreditCard,
   Package, Home, AlertCircle, Loader2, CheckCircle2
@@ -241,6 +242,14 @@ export const Checkout: React.FC = () => {
 
       // Vaciar el carrito
       await clearCart();
+
+      // Notificar a los admins del nuevo pedido pagado
+      sendNotification({
+        role: 'admin',
+        title: 'Nuevo pedido pagado (PayPal)',
+        body: `Pedido #${supabaseOrderId.slice(0, 8).toUpperCase()} confirmado vía PayPal (captura: ${captureId.slice(0, 12)}…).`,
+        data: { orderId: supabaseOrderId, type: 'new_order' },
+      });
 
       // Mostrar pantalla de éxito
       setPaypalSuccess({ orderId: supabaseOrderId, captureId });

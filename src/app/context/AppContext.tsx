@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
+import { sendNotification } from '../../lib/sendNotification';
 
 // ============================================================================
 // TYPES
@@ -1264,12 +1265,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateOrderStatus = async (orderId: string, status: Order['status']) => {
     try {
-      const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+      const { error, data: updatedOrder } = await supabase
+        .from('orders')
+        .update({ status })
+        .eq('id', orderId)
+        .select('customer_id')
+        .single();
       if (error) {
         alert("Error al actualizar estado del pedido: " + error.message);
       } else {
         if (currentUser) {
           fetchOrders(currentUser.role === 'admin' ? undefined : currentUser.id);
+        }
+        // Notify the customer about their order status change
+        if (updatedOrder?.customer_id) {
+          const statusLabels: Record<string, string> = {
+            pagado: 'Pago confirmado',
+            enviado: 'Pedido enviado',
+            entregado: 'Pedido entregado',
+            cancelado: 'Pedido cancelado',
+          };
+          const label = statusLabels[status] ?? `Estado: ${status}`;
+          sendNotification({
+            userId: updatedOrder.customer_id,
+            title: `Skinly — ${label}`,
+            body: `Tu pedido #${orderId.slice(0, 8).toUpperCase()} ha cambiado de estado: ${label}.`,
+            data: { orderId, status },
+          });
         }
       }
     } catch (err: any) {
@@ -1357,6 +1379,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await clearCart();
       if (currentUser) fetchOrders(currentUser.id);
       fetchProducts();
+
+      // Notify admins of new paid order
+      sendNotification({
+        role: 'admin',
+        title: 'Nuevo pedido pagado (MercadoPago)',
+        body: `Pedido #${orderId.slice(0, 8).toUpperCase()} confirmado por ${currentUser?.fullName ?? 'un cliente'}.`,
+        data: { orderId, type: 'new_order' },
+      });
     } catch (err: any) {
       console.error('Error confirmando pago MP:', err.message);
     }
@@ -1408,6 +1438,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Elevate user role to supplier
         await supabase.from('users').update({ role: 'supplier' }).eq('id', app.user_id);
         fetchUsers();
+        // Notify the approved supplier
+        sendNotification({
+          userId: app.user_id,
+          title: '¡Felicidades! Eres proveedor de Skinly',
+          body: 'Tu solicitud como proveedor ha sido aprobada. Ya puedes acceder a tu portal de proveedor.',
+          data: { type: 'supplier_approved' },
+        });
+      } else if (app && !approve) {
+        // Notify the rejected applicant
+        sendNotification({
+          userId: app.user_id,
+          title: 'Solicitud de proveedor revisada',
+          body: notes
+            ? `Tu solicitud fue rechazada. Motivo: ${notes}`
+            : 'Tu solicitud de proveedor no fue aprobada en esta ocasión.',
+          data: { type: 'supplier_rejected' },
+        });
       }
       fetchSupplierApplications();
     } catch (err: any) {
@@ -1480,6 +1527,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } else {
         await supabase.from('affiliate_applications').update({ status }).eq('id', id);
+      }
+
+      // Notify the applicant
+      if (app.userId) {
+        if (approve) {
+          sendNotification({
+            userId: app.userId,
+            title: '¡Bienvenido al programa de afiliados de Skinly!',
+            body: 'Tu solicitud de afiliado fue aprobada. Ya puedes acceder a tu portal y empezar a ganar comisiones.',
+            data: { type: 'affiliate_approved' },
+          });
+        } else {
+          sendNotification({
+            userId: app.userId,
+            title: 'Solicitud de afiliado revisada',
+            body: 'Tu solicitud al programa de afiliados no fue aprobada en esta ocasión. Puedes volver a intentarlo más adelante.',
+            data: { type: 'affiliate_rejected' },
+          });
+        }
       }
 
       await fetchAffiliateApplications();

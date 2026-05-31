@@ -33,8 +33,11 @@ import { PagoExitoso } from './pages/payment/PagoExitoso';
 import { PagoFallido } from './pages/payment/PagoFallido';
 import { PagoPendiente } from './pages/payment/PagoPendiente';
 
+import { useFCM } from './hooks/useFCM';
+
 const AppContent: React.FC = () => {
   const { currentView } = useApp();
+  useFCM();
 
   // Full-bleed views (No layout headers/footers)
   if (currentView === 'splash') return <SplashScreen />;

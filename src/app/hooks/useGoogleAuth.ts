@@ -50,22 +50,31 @@ export const useGoogleAuth = () => {
         if (supaErr) throw supaErr;
         if (!data?.url) throw new Error('No se obtuvo la URL de autenticación de Google.');
 
-        // Escuchar cuando el browser se cierra (deep link o botón atrás)
-        // AppContext procesará el token via appUrlOpen; aquí solo como fallback
+        // Cuando el browser se cierra, hacer polling de getSession() hasta 5s.
+        // appUrlOpen puede tardar en procesar el token — el polling detecta la
+        // sesión tan pronto esté lista (~500ms) en lugar de esperar 10 segundos.
         const listener = await Browser.addListener('browserFinished', async () => {
           listener.remove();
 
-          try {
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (!sessionData?.session) {
-              // El usuario canceló — no hay sesión
-              setLoading(false);
+          const MAX_ATTEMPTS = 10;
+          const INTERVAL_MS  = 500;
+
+          for (let i = 0; i < MAX_ATTEMPTS; i++) {
+            await new Promise(r => setTimeout(r, INTERVAL_MS));
+            try {
+              const { data: sessionData } = await supabase.auth.getSession();
+              if (sessionData?.session) {
+                // Sesión encontrada — onAuthStateChange en AppContext navegará.
+                // No llamamos setView aquí para evitar doble navegación.
+                return;
+              }
+            } catch {
+              // Ignorar errores transitorios y seguir intentando
             }
-            // Si hay sesión, onAuthStateChange en AppContext navegará automáticamente.
-            // No hacemos nada más aquí para evitar doble navegación.
-          } catch {
-            setLoading(false);
           }
+
+          // Después de 5s sin sesión → el usuario canceló
+          setLoading(false);
         });
 
         // Abrir la URL de Google OAuth dentro de la app

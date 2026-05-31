@@ -763,8 +763,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
+    // ── Capacitor deep link handler (skinly://auth/callback) ─────────────────
+    // When Google OAuth redirects back to the app via custom scheme, the token
+    // arrives as an appUrlOpen event — NOT as a window.location change.
+    let appUrlListener: { remove: () => void } | null = null;
+
+    const setupDeepLinkHandler = async () => {
+      try {
+        const isNative = (window as any).Capacitor?.isNativePlatform?.() === true;
+        if (!isNative) return;
+
+        const { App } = await import('@capacitor/app');
+        const { Browser } = await import('@capacitor/browser');
+
+        appUrlListener = await App.addListener('appUrlOpen', async (event: { url: string }) => {
+          const url = event.url;
+          if (!url.includes('skinly://')) return;
+
+          // Close the in-app browser (it may still be open)
+          try { await Browser.close(); } catch { /* ignore */ }
+
+          // Exchange the code / token for a Supabase session
+          try {
+            // PKCE flow: URL contains ?code=
+            if (url.includes('code=')) {
+              const { error: exchErr } = await supabase.auth.exchangeCodeForSession(url);
+              if (exchErr) console.warn('[DeepLink] exchangeCodeForSession error:', exchErr.message);
+              // onAuthStateChange will fire SIGNED_IN and navigate
+              return;
+            }
+
+            // Implicit flow: URL contains #access_token or ?access_token
+            const hashOrQuery = url.includes('#') ? url.split('#')[1] : url.split('?')[1] ?? '';
+            const params = new URLSearchParams(hashOrQuery);
+            const accessToken  = params.get('access_token');
+            const refreshToken = params.get('refresh_token') ?? '';
+
+            if (accessToken) {
+              const { error: sessErr } = await supabase.auth.setSession({
+                access_token:  accessToken,
+                refresh_token: refreshToken,
+              });
+              if (sessErr) console.warn('[DeepLink] setSession error:', sessErr.message);
+              // onAuthStateChange fires SIGNED_IN and navigates
+              return;
+            }
+
+            // Fallback: just try getSession in case token was already stored
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              const mappedUser = await resolveUser(session.user);
+              setCurrentUser(mappedUser);
+              setCurrentView(() => {
+                if (mappedUser.role === 'admin') return 'admin-dashboard';
+                if (mappedUser.role === 'affiliate') return 'affiliate-dashboard';
+                if (mappedUser.role === 'supplier') return 'supplier-portal';
+                return 'home';
+              });
+            }
+          } catch (e) {
+            console.warn('[DeepLink] Error processing OAuth callback:', e);
+          }
+        });
+      } catch (e) {
+        // Not running in Capacitor — silently ignore
+      }
+    };
+
+    setupDeepLinkHandler();
+
     return () => {
       subscription.unsubscribe();
+      appUrlListener?.remove();
     };
   }, []);
 

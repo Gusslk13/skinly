@@ -5,12 +5,10 @@
  *
  * - Web browser: redirige normalmente via window.location.
  * - Capacitor nativo (Android): abre el OAuth en un in-app browser con
- *   @capacitor/browser para que no salte al navegador externo. El deeplink
- *   skinly://auth/callback cierra el browser y Supabase onAuthStateChange
- *   se encarga de completar la sesión.
- *
- * Usage:
- *   const { signInWithGoogle, loading, error } = useGoogleAuth();
+ *   @capacitor/browser. Cuando el browser se cierra (browserFinished),
+ *   llama a getSession() y navega al home si la sesión existe.
+ *   AppContext también escucha el deep link skinly://auth/callback via
+ *   @capacitor/app para procesar el token y cerrar el browser.
  */
 
 import { useState } from 'react';
@@ -52,6 +50,24 @@ export const useGoogleAuth = () => {
         if (supaErr) throw supaErr;
         if (!data?.url) throw new Error('No se obtuvo la URL de autenticación de Google.');
 
+        // Escuchar cuando el browser se cierra (deep link o botón atrás)
+        // AppContext procesará el token via appUrlOpen; aquí solo como fallback
+        const listener = await Browser.addListener('browserFinished', async () => {
+          listener.remove();
+
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (!sessionData?.session) {
+              // El usuario canceló — no hay sesión
+              setLoading(false);
+            }
+            // Si hay sesión, onAuthStateChange en AppContext navegará automáticamente.
+            // No hacemos nada más aquí para evitar doble navegación.
+          } catch {
+            setLoading(false);
+          }
+        });
+
         // Abrir la URL de Google OAuth dentro de la app
         await Browser.open({
           url: data.url,
@@ -60,9 +76,7 @@ export const useGoogleAuth = () => {
           toolbarColor: '#1B5E20',
         });
 
-        // El deep link skinly://auth/callback cerrará el browser y
-        // Supabase onAuthStateChange procesará la sesión automáticamente.
-        // Loading se queda true hasta que AppContext detecte el login.
+        // Loading se queda true — AppContext o browserFinished lo resolverán
 
       } else {
         // ── Web browser: redirect estándar ────────────────────────────────────

@@ -10,7 +10,12 @@
       "Bash(npx tsc *)",
       "Bash(grep -v \"//.*\\\\*\\\\*\")",
       "Bash(npm install *)",
-      "Bash(findstr /n \"env\" .gitignore)"
+      "Bash(findstr /n \"env\" .gitignore)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('@capacitor/core:', p.dependencies['@capacitor/core'] || p.devDependencies['@capacitor/core']\\); console.log\\('@codetrix:', p.dependencies['@codetrix-studio/capacitor-google-auth'] || p.devDependencies['@codetrix-studio/capacitor-google-auth']\\);\")",
+      "Bash(npm uninstall *)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); const all={...p.dependencies,...p.devDependencies}; console.log\\(Object.keys\\(all\\).filter\\(k=>k.includes\\('codetrix'\\)\\).join\\('\\\\n'\\) || 'REMOVED OK'\\)\")",
+      "Bash(npm run *)",
+      "Bash(git push *)"
     ]
   }
 }

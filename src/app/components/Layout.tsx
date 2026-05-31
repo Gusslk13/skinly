@@ -17,7 +17,7 @@ declare global {
 }
 
 // Vistas que corresponden al panel de administración
-const ADMIN_VIEWS = ['admin-dashboard'];
+const HIDDEN_CHAT_VIEWS = ['admin-dashboard', 'splash', 'onboarding', 'login', 'register'];
 
 // ============================================================================
 // ENCABEZADO PRINCIPAL DE LUJO
@@ -37,7 +37,7 @@ export const Header: React.FC = () => {
 
   // Ocultar/mostrar widget de Tawk.to según si estamos en el panel admin
   useEffect(() => {
-    const isAdmin = ADMIN_VIEWS.includes(currentView);
+    const isAdmin = HIDDEN_CHAT_VIEWS.includes(currentView);
 
     const apply = () => {
       if (isAdmin) {

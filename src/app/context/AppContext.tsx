@@ -782,10 +782,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    if (view === 'supplier-portal' && (!activeUser || activeUser.role !== 'supplier')) {
-      alert('Acceso Denegado. Debe iniciar sesión como Proveedor para acceder a este portal.');
-      return;
-    }
+    // supplier-portal: accesible públicamente — el componente maneja landing/formulario/dashboard internamente.
 
     if (view === 'affiliate-dashboard' && (!activeUser || activeUser.role !== 'affiliate')) {
       alert('Acceso Denegado. Debe iniciar sesión como Afiliado para acceder al Portal de Afiliados.');
@@ -793,7 +790,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     // Require Login for Protected Sections
-    const loginRequiredViews: AppView[] = ['cart', 'checkout', 'favorites', 'order-history', 'profile', 'supplier-portal', 'affiliate-dashboard'];
+    const loginRequiredViews: AppView[] = ['cart', 'checkout', 'favorites', 'order-history', 'profile', 'affiliate-dashboard'];
     if (loginRequiredViews.includes(view) && !activeUser) {
       alert('Autenticación requerida. Por favor inicie sesión o regístrese para acceder a esta sección.');
       setCurrentView('login');

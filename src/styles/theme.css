@@ -85,10 +85,18 @@
     0%, 100% { box-shadow: 0 0 0px rgba(41, 112, 69, 0); }
     50% { box-shadow: 0 0 16px rgba(41, 112, 69, 0.2); }
   }
+  --animate-ticker: ticker 28s linear infinite;
+
   @keyframes parallax-float {
     0%, 100% { transform: translateY(0px) rotate(0deg); }
     50% { transform: translateY(-6px) rotate(0.3deg); }
   }
+}
+
+/* Ticker animation — must live outside @theme to be a real CSS keyframe */
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 @layer base {

@@ -20,6 +20,33 @@ declare global {
 const HIDDEN_CHAT_VIEWS = ['admin-dashboard', 'splash', 'onboarding', 'login', 'register'];
 
 // ============================================================================
+// TICKER DE ENVÍO ANIMADO
+// ============================================================================
+const TICKER_TEXT =
+  '🚚 Envío Gratis en compras mayores a $1,000 MXN   ✈️ Envíos Internacionales   📦 Entrega Segura Garantizada   ';
+
+export const ShippingTicker: React.FC = () => (
+  <div
+    className="w-full overflow-hidden bg-[#111111] text-white sticky z-40"
+    style={{ height: 34, top: 64 }}
+    aria-hidden="true"
+  >
+    {/* Duplicamos el texto para lograr el loop infinito perfecto */}
+    <div
+      className="flex items-center h-full whitespace-nowrap"
+      style={{ animation: 'ticker 28s linear infinite' }}
+    >
+      {/* Dos copias = scroll sin cortes */}
+      {[0, 1].map((i) => (
+        <span key={i} className="inline-flex items-center gap-0 text-[11px] font-semibold tracking-wide px-8">
+          {TICKER_TEXT}
+        </span>
+      ))}
+    </div>
+  </div>
+);
+
+// ============================================================================
 // ENCABEZADO PRINCIPAL DE LUJO
 // ============================================================================
 export const Header: React.FC = () => {

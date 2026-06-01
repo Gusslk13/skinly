@@ -28,6 +28,7 @@ export const Checkout: React.FC = () => {
   const {
     cart, getCartTotals, appliedCoupon,
     createMPOrder, clearCart, goBack, setView, currentUser,
+    insuranceSelected,
   } = useApp();
 
   // ── Shipping form state ──────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ export const Checkout: React.FC = () => {
   // ref para guardar el orderId de Supabase durante el flujo de PayPal
   const paypalOrderIdRef = useRef<string | null>(null);
 
-  const { subtotal, discount, shipping, total } = getCartTotals();
+  const { subtotal, discount, shipping, insurance, total } = getCartTotals();
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const usdTotal = total / MXN_TO_USD;
 
@@ -670,6 +671,12 @@ export const Checkout: React.FC = () => {
                 <span>Envío</span>
                 <span>{shipping === 0 ? 'Gratis' : `$${shipping.toFixed(2)}`}</span>
               </div>
+              {insuranceSelected && (
+                <div className="flex justify-between font-semibold text-brand-green-dark">
+                  <span>🛡️ Seguro de envío</span>
+                  <span>+${insurance.toFixed(2)}</span>
+                </div>
+              )}
               <div className="border-t border-brand-black/5 pt-3 flex justify-between font-black text-base text-brand-black">
                 <span>Total a Pagar</span>
                 <span>${total.toFixed(2)} MXN</span>

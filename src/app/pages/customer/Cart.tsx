@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { useApp, FREE_SHIPPING_THRESHOLD } from '../../context/AppContext';
+import { useApp, FREE_SHIPPING_THRESHOLD, INSURANCE_COST } from '../../context/AppContext';
 import { Button } from '../../components/UI';
 import { ImageWithFallback } from '../../components/ImageWithFallback';
-import { ShoppingBag, Trash2, ArrowRight, Ticket, X, Truck } from 'lucide-react';
+import { ShoppingBag, Trash2, ArrowRight, Ticket, X, Truck, Shield, CheckCircle2 } from 'lucide-react';
 
 export const Cart: React.FC = () => {
-  const { 
-    cart, updateCartQuantity, removeFromCart, getCartTotals, 
-    appliedCoupon, applyCouponCode, removeCoupon, setView 
+  const {
+    cart, updateCartQuantity, removeFromCart, getCartTotals,
+    appliedCoupon, applyCouponCode, removeCoupon, setView,
+    insuranceSelected, setInsuranceSelected,
   } = useApp();
 
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState(false);
 
-  const { subtotal, discount, shipping, total } = getCartTotals();
+  const { subtotal, discount, shipping, insurance, total } = getCartTotals();
   const cartItemsCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handleApplyCoupon = (e: React.FormEvent) => {
@@ -80,7 +81,7 @@ export const Cart: React.FC = () => {
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5 font-semibold text-brand-black/70">
                     <Truck size={13} className="text-brand-green-dark" />
-                    <span>Te faltan <strong className="text-brand-black">${remains.toFixed(2)}</strong> para envío gratis</span>
+                    <span>Te faltan <strong className="text-brand-black">${remains.toFixed(0)}</strong> para envío gratis 🚚</span>
                   </div>
                   <span className="text-[10px] font-bold text-brand-black/40">${FREE_SHIPPING_THRESHOLD} mínimo</span>
                 </div>
@@ -173,6 +174,54 @@ export const Cart: React.FC = () => {
             })}
           </div>
 
+          {/* SEGURO DE ENVÍO */}
+          <div
+            className={`rounded-luxury border p-4 transition-all cursor-pointer select-none
+              ${insuranceSelected
+                ? 'bg-brand-green-dark/5 border-brand-green-dark/30'
+                : 'bg-brand-white border-brand-black/8 hover:border-brand-black/20'
+              }`}
+            onClick={() => setInsuranceSelected(!insuranceSelected)}
+          >
+            <div className="flex items-start gap-3">
+              {/* Checkbox */}
+              <div className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center shrink-0 border-2 transition-all
+                ${insuranceSelected ? 'bg-brand-green-dark border-brand-green-dark' : 'border-brand-black/20 bg-brand-white'}`}
+              >
+                {insuranceSelected && <CheckCircle2 size={13} className="text-white" strokeWidth={3} />}
+              </div>
+
+              {/* Contenido */}
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Shield size={14} className={insuranceSelected ? 'text-brand-green-dark' : 'text-brand-black/50'} />
+                    <span className="text-xs font-bold text-brand-black">🛡️ Protege tu pedido</span>
+                  </div>
+                  <span className={`text-xs font-extrabold ${insuranceSelected ? 'text-brand-green-dark' : 'text-brand-black/70'}`}>
+                    +${INSURANCE_COST} MXN
+                  </span>
+                </div>
+
+                {/* Beneficios — siempre visibles */}
+                <ul className="mt-2.5 space-y-1 text-[11px] text-brand-black/60 font-medium">
+                  {[
+                    'Reembolso total si tu paquete se pierde',
+                    'Reposición sin costo si llega dañado',
+                    'Soporte prioritario 24/7',
+                    'Rastreo en tiempo real garantizado',
+                    'Cobertura hasta $2,000 MXN',
+                  ].map((b) => (
+                    <li key={b} className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-bold ${insuranceSelected ? 'text-brand-green-dark' : 'text-brand-black/30'}`}>✓</span>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Resumen y cupones (1/3 de ancho) */}
@@ -205,6 +254,13 @@ export const Cart: React.FC = () => {
                 <span>Envío</span>
                 <span>{shipping === 0 ? 'Gratis' : `$${shipping.toFixed(2)}`}</span>
               </div>
+
+              {insuranceSelected && (
+                <div className="flex justify-between font-semibold text-brand-green-dark">
+                  <span className="flex items-center gap-1">🛡️ Seguro de envío</span>
+                  <span>+${insurance.toFixed(2)}</span>
+                </div>
+              )}
 
               <div className="border-t border-brand-black/5 pt-3 flex justify-between font-bold text-base text-brand-black">
                 <span>Total General</span>

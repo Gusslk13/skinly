@@ -82,8 +82,9 @@ export interface Product {
   supplierId?: string;
 }
 
-export const FREE_SHIPPING_THRESHOLD = 600;
-export const SHIPPING_COST = 100;
+export const FREE_SHIPPING_THRESHOLD = 1000;
+export const SHIPPING_COST = 150;
+export const INSURANCE_COST = 19;
 
 export interface CartItem {
   product: Product;
@@ -246,7 +247,9 @@ interface AppContextType {
   appliedCoupon: Coupon | null;
   applyCouponCode: (code: string) => { success: boolean; discountPercentage?: number; error?: string };
   removeCoupon: () => void;
-  getCartTotals: () => { subtotal: number; discount: number; shipping: number; total: number };
+  insuranceSelected: boolean;
+  setInsuranceSelected: (v: boolean) => void;
+  getCartTotals: () => { subtotal: number; discount: number; shipping: number; insurance: number; total: number };
 
   // Favorites
   favorites: string[]; // Product IDs
@@ -365,6 +368,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [insuranceSelected, setInsuranceSelected] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
 
   // ── Deterministic rating fallback (4.6–5.0) based on product ID ─────────────
@@ -1167,14 +1171,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return sum + price * item.quantity;
     }, 0);
 
-    const discount = appliedCoupon 
-      ? (subtotal * appliedCoupon.discountPercentage) / 100 
+    const discount = appliedCoupon
+      ? (subtotal * appliedCoupon.discountPercentage) / 100
       : 0;
 
     const shipping = subtotal === 0 ? 0 : subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-    const total = subtotal - discount + shipping;
+    const insurance = insuranceSelected ? INSURANCE_COST : 0;
+    const total = subtotal - discount + shipping + insurance;
 
-    return { subtotal, discount, shipping, total };
+    return { subtotal, discount, shipping, insurance, total };
   };
 
   const addCoupon = async (coupon: Coupon) => {
@@ -1306,7 +1311,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cart.length === 0) return { success: false, error: 'El carrito está vacío' };
 
     try {
-      const { total } = getCartTotals();
+      const { total, insurance } = getCartTotals();
 
       const { error: orderErr, data: orderData } = await supabase.from('orders').insert({
         customer_id: currentUser.id,
@@ -1322,7 +1327,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           postal_code: shippingDetails.postalCode,
           notes: shippingDetails.references || ''
         },
-        payment_method: 'por acordar'
+        payment_method: 'por acordar',
+        insurance_selected: insuranceSelected,
+        insurance_cost: insurance,
       }).select('id').single();
 
       if (orderErr || !orderData) return { success: false, error: orderErr?.message || 'No se pudo crear el pedido' };
@@ -1415,7 +1422,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cart.length === 0) return { success: false, error: 'El carrito está vacío' };
 
     try {
-      const { total } = getCartTotals();
+      const { total, insurance } = getCartTotals();
 
       const { error: orderErr, data: orderData } = await supabase.from('orders').insert({
         customer_id: currentUser.id,
@@ -1431,7 +1438,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           postal_code: shippingDetails.postalCode,
           notes: shippingDetails.references || ''
         },
-        payment_method: 'mercadopago'
+        payment_method: 'mercadopago',
+        insurance_selected: insuranceSelected,
+        insurance_cost: insurance,
       }).select('id').single();
 
       if (orderErr || !orderData) {
@@ -1742,6 +1751,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       applyCouponCode,
       removeCoupon,
       getCartTotals,
+      insuranceSelected,
+      setInsuranceSelected,
 
       favorites,
       toggleFavorite,

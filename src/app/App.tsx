@@ -2,57 +2,7 @@ import React from 'react';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header, MobileNavBar, Footer } from './components/Layout';
-
-// Ticker keyframe injected as a real global style (not inside @theme)
-const TICKER_STYLE = `
-@keyframes ticker {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-`;
-
-const TICKER_ITEMS = [
-  '🚚 Envío Gratis en compras mayores a $1,000 MXN',
-  '✈️ Envíos Internacionales',
-  '📦 Entrega Segura Garantizada',
-  '🛡️ Protege tu pedido por solo $19 MXN',
-];
-const TICKER_TEXT = TICKER_ITEMS.join('         ') + '         ';
-
-const ShippingTickerGlobal: React.FC = () => (
-  <>
-    <style>{TICKER_STYLE}</style>
-    <div
-      style={{
-        background: '#111111',
-        color: '#ffffff',
-        height: 36,
-        overflow: 'hidden',
-        position: 'sticky',
-        top: 64,
-        zIndex: 39,
-        display: 'flex',
-        alignItems: 'center',
-        width: '100%',
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          whiteSpace: 'nowrap',
-          animation: 'ticker 28s linear infinite',
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: '0.04em',
-        }}
-      >
-        <span style={{ paddingRight: 48 }}>{TICKER_TEXT}</span>
-        <span style={{ paddingRight: 48 }}>{TICKER_TEXT}</span>
-      </div>
-    </div>
-  </>
-);
+import { Truck, Plane, Package, Shield } from 'lucide-react';
 
 // Onboarding Pages
 import { SplashScreen } from './pages/onboarding/SplashScreen';
@@ -85,6 +35,78 @@ import { PagoPendiente } from './pages/payment/PagoPendiente';
 
 import { useFCM } from './hooks/useFCM';
 
+// ── Shipping Ticker ───────────────────────────────────────────────────────────
+const TICKER_STYLE = `
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+`;
+
+const GREEN = '#4CAF50';
+
+interface TickerItem { icon: React.ReactNode; text: string; }
+const ITEMS: TickerItem[] = [
+  { icon: <Truck  size={14} color={GREEN} />, text: 'Envío Gratis en compras mayores a $1,000 MXN' },
+  { icon: <Plane  size={14} color={GREEN} />, text: 'Envíos Internacionales' },
+  { icon: <Package size={14} color={GREEN} />, text: 'Entrega Segura Garantizada' },
+  { icon: <Shield  size={14} color={GREEN} />, text: 'Protege tu pedido por solo $19 MXN' },
+];
+
+const TickerLap: React.FC = () => (
+  <>
+    {ITEMS.map((item, i) => (
+      <React.Fragment key={i}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          {item.icon}
+          {item.text}
+        </span>
+        <span style={{ margin: '0 22px', color: '#444', fontWeight: 300 }}>•</span>
+      </React.Fragment>
+    ))}
+  </>
+);
+
+const ShippingTickerGlobal: React.FC = () => (
+  <>
+    <style>{TICKER_STYLE}</style>
+    <div
+      style={{
+        background: '#111111',
+        color: '#ffffff',
+        height: 36,
+        overflow: 'hidden',
+        position: 'sticky',
+        top: 64,
+        zIndex: 39,
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        flexShrink: 0,
+      }}
+      aria-hidden="true"
+    >
+      {/* Two identical laps → translateX(-50%) creates seamless loop */}
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          whiteSpace: 'nowrap',
+          animation: 'ticker 32s linear infinite',
+          fontSize: 13,
+          fontWeight: 600,
+          letterSpacing: '0.02em',
+          paddingLeft: 24,
+        }}
+      >
+        <TickerLap />
+        <TickerLap />
+      </div>
+    </div>
+  </>
+);
+// ─────────────────────────────────────────────────────────────────────────────
+
 const AppContent: React.FC = () => {
   const { currentView } = useApp();
   useFCM();
@@ -95,64 +117,47 @@ const AppContent: React.FC = () => {
   if (currentView === 'login') return <Login />;
   if (currentView === 'register') return <Register />;
 
-  // Render view template
   const renderView = () => {
     switch (currentView) {
-      case 'home':
-        return <Home />;
-      case 'categories':
-        return <Categories />;
-      case 'product-details':
-        return <ProductDetails />;
-      case 'cart':
-        return <Cart />;
-      case 'checkout':
-        return <Checkout />;
-      case 'favorites':
-        return <Favorites />;
-      case 'order-history':
-        return <OrderHistory />;
-      case 'profile':
-        return <Profile />;
-      case 'admin-dashboard':
-        return <AdminDashboard />;
-      case 'supplier-portal':
-        return <SupplierPortal />;
-      case 'affiliate-dashboard':
-        return <AffiliateDashboard />;
-      case 'affiliate-program':
-        return <AffiliateProgram />;
-      case 'pago-exitoso':
-        return <PagoExitoso />;
-      case 'pago-fallido':
-        return <PagoFallido />;
-      case 'pago-pendiente':
-        return <PagoPendiente />;
-      default:
-        return <Home />;
+      case 'home':             return <Home />;
+      case 'categories':       return <Categories />;
+      case 'product-details':  return <ProductDetails />;
+      case 'cart':             return <Cart />;
+      case 'checkout':         return <Checkout />;
+      case 'favorites':        return <Favorites />;
+      case 'order-history':    return <OrderHistory />;
+      case 'profile':          return <Profile />;
+      case 'admin-dashboard':  return <AdminDashboard />;
+      case 'supplier-portal':  return <SupplierPortal />;
+      case 'affiliate-dashboard': return <AffiliateDashboard />;
+      case 'affiliate-program':   return <AffiliateProgram />;
+      case 'pago-exitoso':     return <PagoExitoso />;
+      case 'pago-fallido':     return <PagoFallido />;
+      case 'pago-pendiente':   return <PagoPendiente />;
+      default:                 return <Home />;
     }
   };
 
   return (
     <div className="min-h-screen bg-brand-gray-soft flex flex-col relative pb-20 md:pb-0 select-none">
-      
+
       {/* Sticky Premium Header */}
       <Header />
 
-      {/* Shipping ticker — sticky below navbar, visible on all customer views */}
+      {/* Shipping ticker — sticky below navbar, shown on all customer views */}
       <ShippingTickerGlobal />
 
-      {/* Main Responsive content scroll container */}
+      {/* Main content */}
       <main className="flex-1 w-full relative">
         <div key={currentView} className="animate-fade-in-up">
           {renderView()}
         </div>
       </main>
 
-      {/* iOS App Navigation Tab Bar (Shown only on mobile) */}
+      {/* iOS Tab Bar (mobile only) */}
       <MobileNavBar />
 
-      {/* Clean Premium Footer */}
+      {/* Footer */}
       <Footer />
 
     </div>

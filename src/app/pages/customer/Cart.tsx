@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp, FREE_SHIPPING_THRESHOLD, INSURANCE_COST } from '../../context/AppContext';
 import { Button } from '../../components/UI';
 import { ImageWithFallback } from '../../components/ImageWithFallback';
@@ -15,7 +15,12 @@ export const Cart: React.FC = () => {
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState(false);
 
-  const { subtotal, discount, shipping, insurance, total } = getCartTotals();
+  // useMemo ensures totals recalculate whenever insuranceSelected or cart changes
+  const { subtotal, discount, shipping, insurance, total } = useMemo(
+    () => getCartTotals(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cart, insuranceSelected, appliedCoupon]
+  );
   const cartItemsCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handleApplyCoupon = (e: React.FormEvent) => {
@@ -196,7 +201,7 @@ export const Cart: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Shield size={14} className={insuranceSelected ? 'text-brand-green-dark' : 'text-brand-black/50'} />
-                    <span className="text-xs font-bold text-brand-black">🛡️ Protege tu pedido</span>
+                    <span className="text-xs font-bold text-brand-black">Protege tu pedido</span>
                   </div>
                   <span className={`text-xs font-extrabold ${insuranceSelected ? 'text-brand-green-dark' : 'text-brand-black/70'}`}>
                     +${INSURANCE_COST} MXN

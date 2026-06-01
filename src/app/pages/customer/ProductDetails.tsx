@@ -101,7 +101,9 @@ export const ProductDetails: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 space-y-8">
+    <div className="pb-24 space-y-8">
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
       {/* Botón de regreso */}
       <div className="flex justify-start">
@@ -496,6 +498,7 @@ export const ProductDetails: React.FC = () => {
         </div>
       </section>
 
+      </div>
     </div>
   );
 };

@@ -3,6 +3,57 @@ import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header, MobileNavBar, Footer } from './components/Layout';
 
+// Ticker keyframe injected as a real global style (not inside @theme)
+const TICKER_STYLE = `
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+`;
+
+const TICKER_ITEMS = [
+  '🚚 Envío Gratis en compras mayores a $1,000 MXN',
+  '✈️ Envíos Internacionales',
+  '📦 Entrega Segura Garantizada',
+  '🛡️ Protege tu pedido por solo $19 MXN',
+];
+const TICKER_TEXT = TICKER_ITEMS.join('         ') + '         ';
+
+const ShippingTickerGlobal: React.FC = () => (
+  <>
+    <style>{TICKER_STYLE}</style>
+    <div
+      style={{
+        background: '#111111',
+        color: '#ffffff',
+        height: 36,
+        overflow: 'hidden',
+        position: 'sticky',
+        top: 64,
+        zIndex: 39,
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        flexShrink: 0,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          whiteSpace: 'nowrap',
+          animation: 'ticker 28s linear infinite',
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: '0.04em',
+        }}
+      >
+        <span style={{ paddingRight: 48 }}>{TICKER_TEXT}</span>
+        <span style={{ paddingRight: 48 }}>{TICKER_TEXT}</span>
+      </div>
+    </div>
+  </>
+);
+
 // Onboarding Pages
 import { SplashScreen } from './pages/onboarding/SplashScreen';
 import { Onboarding } from './pages/onboarding/Onboarding';
@@ -87,6 +138,9 @@ const AppContent: React.FC = () => {
       
       {/* Sticky Premium Header */}
       <Header />
+
+      {/* Shipping ticker — sticky below navbar, visible on all customer views */}
+      <ShippingTickerGlobal />
 
       {/* Main Responsive content scroll container */}
       <main className="flex-1 w-full relative">

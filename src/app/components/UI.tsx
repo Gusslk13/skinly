@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Award, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 // ============================================================================

@@ -80,10 +80,11 @@ const FileUploadField: React.FC<{
   userId: string;
   required?: boolean;
   hint?: string;
-}> = ({ label, accept, value, onChange, userId, required, hint }) => {
+  error?: string;
+}> = ({ label, accept, value, onChange, userId, required, hint, error: externalError }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(externalError || '');
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
